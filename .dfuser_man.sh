@@ -191,7 +191,7 @@ function check_if_dir_exists() {
 
 test_check_if_dir_exists() {
     echo "Testing check_if_dir_exists"
-    check_if_dir_exists "/mnt/c/Users/cosgroma/.pyenv/pyenv-win"
+    check_if_dir_exists "/home/cosgroma/.pyenv"
     check_if_dir_exists "/mnt/c/Users/cosgroma/.pyenv/pyenv-win2"
 }
 
