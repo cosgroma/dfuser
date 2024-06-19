@@ -8,6 +8,7 @@
 
 DFBIN_DIR=$HOME/.dfbin
 DFUSER_DIR=$HOME/.dfuser
+DFUSER_SCRIPTS_DIR=$HOME/.dfuser/scripts
 
 # Test if the dfuser directory exists
 if ! [[ -d $DFUSER_DIR ]]; then
@@ -21,12 +22,73 @@ if ! [[ -d $DFBIN_DIR ]]; then
     mkdir $DFBIN_DIR
 fi
 
+declare -A dfuser_files
+declare -A dfuser_files_enabled
+
 function get_dfuser_files() {
-    find $DFUSER_DIR -name "*.sh" | sort
+    files=$(find $DFUSER_SCRIPTS_DIR -name "*.sh" | sort)
+    for f in $files; do
+        fn=$(basename $f)
+        dfuser_files[$fn]=$f
+    done
 }
 
-function get_dfbin_files() {
-    find $DFBIN_DIR -name "*.sh" | sort
+function show_dfuser_files() {
+    get_dfuser_files
+    for key in "${!dfuser_files[@]}"; do
+        if [[ -v dfuser_files_enabled[$key] ]]; then
+            echo $key " ➡️ " ${dfuser_files[$key]} " ✅"
+        else
+            echo $key " ➡️ " ${dfuser_files[$key]}
+        fi
+    done
+}
+
+function setup_symbolic_links() {
+    get_dfuser_files
+    for key in "${!dfuser_files[@]}"; do
+        echo "Setting up symbolic link for $key"
+        ln -s "$DFUSER_DIR/${dfuser_files[$key]}" "$DFUSER_SCRIPTS_DIR/$key"
+    done
+}
+
+function enable_dfuser_file() {
+    local key=$1
+    # Check if key ${dfuser_files[$key]} exists
+    if [[ -e ${dfuser_files[$key]} ]]; then
+        echo "⚡ Enabling $key"
+        ln -s ${dfuser_files[$key]} $DFUSER_DIR/$key
+        dfuser_files_enabled[$key]=${dfuser_files[$key]}
+    else
+        echo "File not found: ${dfuser_files[$key]}"
+    fi
+}
+
+# Initialized dfuser_files_enabled from symbolic links
+function initialize_dfuser_files() {
+    get_dfuser_files;
+    for f in $(find $DFUSER_DIR -type l); do
+        fn=$(basename $f)
+        dfuser_files_enabled[$fn]=$(readlink -f $f)
+    done
+}
+
+function disable_dfuser_file() {
+    local key=$1
+    # Check if key ${dfuser_files[$key]} exists
+    if [[ -e ${dfuser_files[$key]} ]]; then
+        echo "Disabling $key"
+        rm $DFUSER_DIR/$key
+        unset dfuser_files_enabled[$key]
+    else
+        echo "File not found: ${dfuser_files[$key]}"
+    fi
+}
+
+function show_active_dfuser_files() {
+    for key in "${!dfuser_files_enabled[@]}"; do
+        echo $key " ➡️ " ${dfuser_files_enabled[$key]}
+    done
 }
 
 function get_dfuser_file() {
@@ -37,6 +99,12 @@ function get_dfuser_file() {
         echo "File not found: $file"
         return 1
     fi
+}
+
+## dfbin functions
+
+function get_dfbin_files() {
+    find $DFBIN_DIR -name "*.sh" | sort
 }
 
 function get_dfbin_file() {
@@ -71,25 +139,8 @@ function get_function_definitions_from_file() {
     fi
 }
 
-function show_active_dfuser_files() {
-    echo "dfuser files at $DFUSER_DIR: "
-    for f in `get_dfuser_files`; do
-        fn=$(basename $f)
-        [[ $fn =~ ^_ ]] && {
-            echo "[-]" $fn
-            } || {
-            echo "[+]" $fn
-        };
-    done;
-}
 
-function disable_dfuser_file() {
-    local file=$1
-    local base=$(basename $file)
-    local newfile=$DFUSER_DIR/_$base
-    mv $file $newfile
-    echo "Disabled $file"
-}
+
 
 function get_file_env_set() {
     local file=$1
@@ -180,6 +231,14 @@ function filter_out_of_path() {
     echo $new_path
 }
 
+test_filter_out_of_path() {
+    echo "Testing filter_out_of_path"
+    echo "Current PATH: "
+    split_current_path
+    echo "Filtering out /mnt/c/Users/cosgroma/.pyenv/pyenv-win"
+    filter_out_of_path "/mnt/c/Users/cosgroma/.pyenv/pyenv-win"
+}
+
 function check_if_dir_exists() {
     local dir=$1
     if [[ -d $dir ]]; then
@@ -195,47 +254,90 @@ test_check_if_dir_exists() {
     check_if_dir_exists "/mnt/c/Users/cosgroma/.pyenv/pyenv-win2"
 }
 
-test_filter_out_of_path() {
-    echo "Testing filter_out_of_path"
-    echo "Current PATH: "
-    split_current_path
-    echo "Filtering out /mnt/c/Users/cosgroma/.pyenv/pyenv-win"
-    filter_out_of_path "/mnt/c/Users/cosgroma/.pyenv/pyenv-win"
+
+
+
+
+dfman_dfuser() {
+    case $1 in
+        "show")
+            show_dfuser_files
+            ;;
+        "enable")
+            shift;
+            enable_dfuser_file $1
+            ;;
+        "disable")
+            shift;
+            disable_dfuser_file $1
+            ;;
+        "active")
+            show_active_dfuser_files
+            ;;
+        *)
+            echo "Usage: dfman user [show|enable|disable|active]"
+            ;;
+    esac
 }
 
-# Declare an associative array
-declare -A emojis
-
-# Add more emojis
-function add_emojis_json() {
-  local json_file="$1"
-  while IFS="=" read -r key value
-  do
-    emojis[$key]=$value
-  done < <(jq -r "to_entries|map(\"\(.key)=\(.value)\")|.[]" $json_file)
+dfman_dfbin() {
+    case $1 in
+        "show")
+            get_dfbin_files
+            ;;
+        "get")
+            get_dfbin_file $2
+            ;;
+        "doc")
+            get_documentation_from_file $2
+            ;;
+        "functions")
+            get_function_definitions_from_file $2
+            ;;
+        *)
+            echo "Usage: dfman bin [show|get|doc|functions]"
+            ;;
+    esac
 }
 
-test_add_emojis_json() {
-  add_emojis_json "emojis.json"
-  for key in "${!emojis[@]}"
-  do
-    echo "$key: ${emojis[$key]}"
-  done
+dfman_env() {
+    case $1 in
+        "show")
+            show_path
+            ;;
+        "check")
+            shift;
+            check_in_path $1
+            ;;
+        "filter")
+            shift;
+            filter_out_of_path $1
+            ;;
+        "restore")
+            restore_path_from_dfuser_files
+            ;;
+        *)
+            echo "Usage: dfman env [show|check|filter|restore]"
+            ;;
+    esac
 }
 
 
-# Function to use emojis
-function print_emoji() {
-  local name="$1"
-  echo "${emojis[$name]}"
+dfman() {
+    case $1 in
+        "user")
+            dfman_dfuser $2 $3
+            ;;
+        "bin")
+            dfman_dfbin $2 $3
+            ;;
+        "env")
+            dfman_env $2 $3
+            ;;
+        *)
+            echo "Usage: dfman [user|bin|env]"
+            ;;
+    esac
 }
 
-function print_all_emojis() {
-  for key in "${!emojis[@]}"
-  do
-    echo "$key: ${emojis[$key]}"
-  done
-}
-
-# Export function if you plan to source this script and use it in other scripts
-export -f print_emoji
+initialize_dfuser_files;
