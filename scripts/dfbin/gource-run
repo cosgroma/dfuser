@@ -1,0 +1,159 @@
+#!/bin/bash
+################################################################################
+## @file    gource.sh - {{project_name}}
+## @author  Mathew Cosgrove cosgroma@gmail.com
+## @Date:   2016-05-03 02:57:44
+## @brief
+## @copyright
+## @version
+## @Last Modified by:   cosgroma
+## @Last Modified time: 2016-08-20 02:52:03
+#
+## @details
+## @par URL
+##  @n
+#
+## @par Purpose
+#
+##
+## @note
+##
+#
+## @par Usage
+##
+################################################################################
+groupname=$(basename `pwd`)
+date='2013-01-01'
+ignore=''
+while getopts ":d:i:" opt; do
+  case $opt in
+    d)
+      echo "-d was triggered, Parameter: $OPTARG" >&2
+      date=$OPTARG
+      ;;
+    i)
+      echo "-i was triggered, Parameter: $OPTARG" >&2
+      ignore=$OPTARG
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 1
+      ;;
+  esac
+done
+
+
+for d in $(find . -name "*.git*" -type d); do
+  skip=false;
+  root_name=$(echo "$d" | cut -d '.' -f2 | cut -d '/' -f2)
+  for i in $ignore; do
+    # if test $(echo "$d" | grep $i); then
+    if [[ $root_name == $i ]]; then
+      skip=true;
+      echo "skipping" $d
+      break;
+    fi;
+  done;
+
+  if $skip; then continue; fi;
+  echo "processing" $d
+  base_folder=$(echo $d | cut -d'.' -f2)
+  filename=gource_$(echo $base_folder | sed "s@/@_@g").txt
+  gource --output-custom-log  $filename $d;
+  sed -i "s@|/@|/$groupname$base_folder@g" $filename
+done
+
+
+
+
+case $(uname) in
+  Linux) codec="-vcodec libx264";
+         ext="mp4";
+         ;;
+      *) codec="-vcodec wmv1";
+         ext="wmv";
+         ;;
+esac
+
+combined_filename=$groupname\_combined.txt
+
+cat gource__* | sort -n > $combined_filename
+rm gource__*
+
+outfile=$groupname-$(date +%Y%m%d%H%M%S)
+echo "running gource: $outfile-ffmpeg"
+
+gource $combined_filename \
+  --start-date "$date"  \
+  --title "$groupname" \
+  --highlight-dirs  \
+  --dir-name-depth 1 \
+  --hide-filenames \
+  --seconds-per-day .2 \
+  --output-framerate 60 \
+  -1920x1080 \
+  --output-ppm-stream $outfile.ppm &> $outfile.log
+
+echo "running ffmpeg: $outfile.$ext"
+touch $outfile.$ext
+
+# YYYY-MM-DD hh:mm:ss +tz
+ffmpeg -y -r 60 -f image2pipe -vcodec ppm -i $outfile.ppm  $codec -r 60 -qscale 0 $outfile.$ext &> $outfile-ffmpeg.log
+# rm $outfile.ppm
+timeatend=$(echo `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 -sexagesimal $outfile.$ext` | cut -d'.' -f1) &> $outfile-ffmpeg.log
+timeatend=$(date --date @$((`date '+%s' -d "$timeatend"`-1)) +%H:%M:%S).9
+echo "running last frame to image $outfile.jpg"
+ffmpeg -ss $timeatend -i $outfile.$ext -qscale:v 2 -vframes 1 $outfile.jpg &> $outfile-ffmpeg.log
+
+
+
+
+# ffmpeg -i sergeant-2015-2016.mp4 -c:v libvpx -crf 10 -b:v 1M -c:a libvorbis sergeant-2015-2016.webm
+
+# gource $combined_filename \
+#   --start-date "$date"  \
+#   --title "$groupname" \
+#   --highlight-dirs  \
+#   --dir-name-depth 1 \
+#   --hide-filenames \
+#   --seconds-per-day .2 \
+#   --output-framerate 60 \
+
+#   --output-ppm-stream $outfile.ppm
+
+# rm gource__kernels
+# rm gource__*kernels*
+#
+## gource engines_combined.txt --title "engines" --highlight-dirs  --dir-name-depth 1 --hide-filenames --seconds-per-day .1
+# ffmpeg -y -b 3000K -r 60 -f image2pipe -vcodec ppm -i - -vcodec libx264 -vpre hq -crf 28 -threads 0 bugle.mp4
+#
+# git_users=$(cat sergeant_log_combined_processed.txt | cut -d'|' -f2 | sort | uniq | grep -v 'Mathew Cosgrove' | grep -v 'stu' | grep -v 'Stuart')
+#
+# IFS=$'\n' ; for u in ${git_users[*]}; do sed -i -r "s/$u/Mathew Cosgrove/g" sergeant_log_combined_processed.txt ; done;
+#
+# gource --start-date '2014-06-20' --user-scale 2.0 -800x600 --output-ppm-stream - | ffmpeg -y -r 60 -f image2pipe -vcodec ppm -i - -vcodec libx264 -vpre hq -crf 28 -threads 0 sergean_forest.mp4
+#
+# gource sergeant_log_combined.txt --start-date '2016-01-00' --user-scale 2.0 -800x600 -o - | ffmpeg -y -r 60 -f image2pipe -vcodec ppm -i - -vcodec libx264 -preset ultrafast -pix_fmt yuv420p -crf 1 -threads 0 -bf 0 gource.mp4
+# gource sergeant_log_combined.txt --start-date '2016-01-00' --highlight-dirs --dir-name-depth 2 --user-scale 2.0 -1920x1080 -o - | ffmpeg -y -r 60 -f image2pipe -vcodec ppm -i - -vcodec libx264 -preset ultrafast -pix_fmt yuv420p -crf 1 -threads 0 -bf 0 gource.mp4
+
+# gource -1024x768 --stop-position 1.0 --highlight-all-users --hide-filenames --seconds-per-day 5 --output-framerate 60 --output-ppm-stream output.ppm
+# ffmpeg -y -r 60 -f image2pipe -vcodec ppm -i output.ppm  -vcodec wmv1 -r 60 -qscale 0 out.wmv
+# libx264
+# gource -1024x768 --stop-position 1.0 --highlight-all-users --hide-filenames --seconds-per-day .1 --output-framerate 60 --output-ppm-stream output.ppm
+
+#  gource -1024x768 --stop-position 1.0 --highlight-all-users --hide-filenames --seconds-per-day .1 --output-framerate 60 --output-ppm-stream output.ppm
+
+# --start-date '2016-01-00' --highlight-dirs --dir-name-depth 2 --user-scale 2.0 -1920x1080
+
+# gource sergeant_log_combined.txt --title "My Project" --highlight-dirs  --dir-name-depth 2 --hide-filenames --seconds-per-day .1 --key
+
+# $ ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 input.mp4
+
+# timeatend=$(echo `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 -sexagesimal out.wmv` | cut -d'.' -f1)
+
+
+# ffmpeg -ss $timeatend -i out.wmv -qscale:v 2 -vframes 1 output.jpg

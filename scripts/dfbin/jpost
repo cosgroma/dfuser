@@ -1,0 +1,198 @@
+#!/bin/bash
+# About: Bash script to create new Jekyll posts
+# Author: Mathew Cosgrove
+
+# VARIABLES
+######################################################
+set -e
+source ~/.bash_functions.sh
+
+# COLORS
+Color_Off='\033[0m'       # Text Reset
+
+# Regular Colors
+Black='\033[0;30m'        # Black
+Red='\033[0;31m'          # Red
+Green='\033[0;32m'        # Green
+Yellow='\033[0;33m'       # Yellow
+Blue='\033[0;34m'         # Blue
+Purple='\033[0;35m'       # Purple
+Cyan='\033[0;36m'         # Cyan
+White='\033[0;37m'        # White
+
+CUR_DIR=$PWD
+
+# VARIABLES
+###########
+
+# Define the post directory (where to create the file)
+JEKYLL_POSTS_DIR=$CUR_DIR'/_posts/'
+# [ -e $JEKYLL_POSTS_DIR ] || ( echo -e "${Red}ERROR: ${Color_Off} can find _posts directory at $CUR_DIR"; exit 1 )
+if ! [ -e $JEKYLL_POSTS_DIR ]; then
+  echo -e "${Yellow}WARNING:${Color_Off} can't find _posts directory at $CUR_DIR, creating $JEKYLL_POSTS_DIR";
+  mkdir -p $JEKYLL_POSTS_DIR
+fi
+# Post title
+  # if more than one argument is provided then TITLE is the last argument
+if [ $# -gt 1 ]; then
+  TITLE=${@: -1}
+  # if only one argument is provided then it is the Title
+else
+  TITLE=$1
+fi
+
+# Replace spaces in title with underscores
+TITLE_STRIPPED=${TITLE// /_}
+
+# Permalink
+PERMALINK=$(tr A-Z a-z <<< $TITLE_STRIPPED)
+
+# Date
+DATE=`date +%Y-%m-%d`
+DATETIME=`date +"%Y-%m-%d %H:%M:%S"`
+
+TAGS=''
+DESCRIPTION=''
+CATEGORIES=''
+IMAGE=''
+
+# Post Type (markdown, md, textile)
+TYPE='.md'
+
+# File name structure
+FILENAME=${DATE}-${TITLE_STRIPPED}${TYPE}
+
+# File path
+FILEPATH=${JEKYLL_POSTS_DIR}${FILENAME}
+
+
+# USAGE
+###########
+showUsage() {
+  echo "
+SYNOPSIS
+    $(basename $0) [-oh] [-t [tags]] [-c [categories]] [-d [description]] [-i [path/to/image]] \"post name\" ...
+
+DESCRIPTION
+    creates a post for a jekyll blog
+
+OPTIONS
+   -h,   show this help
+   -o,   open file in sublime text
+   -t,   add tags to post \"tag1 tag2 tag3\"
+   -c,   add category to post (only one)
+   -i,   add an image to the post
+   -d,   add a post description
+   -f,   file type
+
+EXAMPLE
+
+jpost \"some title\"
+jpost -t \"tag1 tag2\" -c \"category\" -d \"some small desc\" -i path/to/image -o \"some title\"
+"
+}
+
+createList() {
+  [[ $# == 0 ]] && return;
+  printf "\n"
+  printf " - %s\n" $@ | cut -d' ' -f2-
+}
+
+STATUS="
+
+## Problem
+
+* What are you working on and for what program
+
+## Status
+
+** Here are some questions that should be answer **
+
+* What have gotten to work and can you prove it?
+* What isn’t working yet and what is the problem?
+* What documentation/software do you have that needs reviewed?
+* Have you made any new repositories (apps, engines, etc.)?
+* What repositories are you currently using? ** if you are not using configuration management tell me why **
+
+## What is your plan for next week?
+
+## What do you need help on?
+
+## Extra
+
+"
+# CREATE POST
+#############
+createPost() {
+  # create file
+  touch ${FILEPATH}
+
+  # add YAML front matter to the newly created file
+  echo -e "---
+layout: post
+title: ${TITLE}
+permalink: ${PERMALINK}
+image: ${IMAGE}
+date: ${DATETIME}
+tags: $(createList ${TAGS[*]})
+description: ${DESCRIPTION}
+categories: $(createList ${CATEGORIES[*]})
+---
+" > ${FILEPATH};
+
+  $status && (echo -e "${STATUS}" >> ${FILEPATH});
+  # success message
+  echo -e "${Green}CREATED:${Color_Off} ${JEKYLL_POSTS_DIR}${FILENAME}${Color_Off}"
+  # echo -e "${Green}Created img directory at  $CUR_DIR/assets/img/posts/${PERMALINK}"
+  # mkdir -p $CUR_DIR/assets/img/posts/${PERMALINK}
+
+
+}
+
+
+# ARGUMENTS
+###########
+status=false
+while getopts "lhost:c:d:" opt; do
+  case $opt in
+    h) showUsage; exit ;;
+    t) TAGS=( $OPTARG ) ;;
+    d) DESCRIPTION="$OPTARG" ;;
+    i) IMAGE="$OPTARG" ;;
+    c) CATEGORIES=( $OPTARG ) ;;
+    f) filetype=$OPTARG ;;
+    o) fopen=1 ;;
+    l) list=1 ;;
+    s) status=true ;;
+  esac
+done
+
+# CONDITIONS
+############
+if [ $# -eq 0 ]; then
+  showUsage
+else
+
+  if [ ! -z $list ]; then
+    printf "%s\n" $(ls $JEKYLL_POSTS_DIR | cut -d '-' -f4-)
+  # check if file alreday exists and is not empty
+  elif [ -s ${FILEPATH} ]; then
+    echo -e "${Red}ERROR:${Color_Off} File already EXISTS and is NOT EMPTY"
+  #check if file already exists
+  elif [ -e ${FILEPATH} ]; then
+    echo -e "${Yellow}File already EXISTS${Color_Off}"
+  # if no file with the same name exists, proceed with creating a new one
+  else
+    createPost
+  fi
+
+  # check for -o (fopen) argument
+  if [ ! -z $fopen ]; then
+    # Open file in Sublime Text
+    [[ $OS == "Windows_NT" ]] && FILEPATH=$(cygpath -aw $FILEPATH);
+
+    [[ $(type -t subl) == file ]] || ( echo -e "${Red}ERROR: ${Color_Off} no sublime text, cannot open"; exit 1 )
+    subl $FILEPATH
+  fi
+fi
+

@@ -26,21 +26,44 @@ declare -A dfuser_files
 declare -A dfuser_files_enabled
 
 function get_dfuser_files() {
-    files=$(find $DFUSER_SCRIPTS_DIR -name "*.sh" | sort)
+    files=$(find $DFUSER_SCRIPTS_DIR -maxdepth 1 -name "*.sh" | sort | uniq)
     for f in $files; do
         fn=$(basename $f)
         dfuser_files[$fn]=$f
+
+        # parse the file to get the environment variables
+        # env_vars=$(get_file_env_set $f)
+        
     done
+}
+
+function get_dfuser_script_modules() {
+    dirs=$(find $DFUSER_SCRIPTS_DIR -mindepth 1 -maxdepth 1 -type d)
+    for d in $dirs; do
+        echo $d
+    done
+}
+
+function get_max_str_len() {
+    local max_len=0
+    for key in "${!dfuser_files[@]}"; do
+        if [[ ${#key} -gt $max_len ]]; then
+            max_len=${#key}
+        fi
+    done
+    echo $max_len
 }
 
 function show_dfuser_files() {
     get_dfuser_files
+    max_len=$(get_max_str_len)
     for key in "${!dfuser_files[@]}"; do
         if [[ -v dfuser_files_enabled[$key] ]]; then
-            echo $key " ➡️ " ${dfuser_files[$key]} " ✅"
+            enabled_str="|✅|"
         else
-            echo $key " ➡️ " ${dfuser_files[$key]}
+            enabled_str="|  |"
         fi
+        printf "%${max_len}s ➡️ %s %s\n" $key $enabled_str ${dfuser_files[$key]}
     done
 }
 
@@ -103,9 +126,28 @@ function get_dfuser_file() {
 
 ## dfbin functions
 
+declare -A dfbin_files
+declare -A dfbin_files_enabled
+
 function get_dfbin_files() {
-    find $DFBIN_DIR -name "*.sh" | sort
+    files=$(find $DFBIN_DIR -name "*.sh" | sort)
+    for f in $files; do
+        fn=$(basename $f)
+        dfbin_files[$fn]=$f
+    done
 }
+
+function show_dfbin_files() {
+    get_dfbin_files
+    for key in "${!dfbin_files[@]}"; do
+        if [[ -v dfbin_files_enabled[$key] ]]; then
+            echo $key " ➡️ " ${dfbin_files[$key]} " ✅"
+        else
+            echo $key " ➡️ " ${dfbin_files[$key]}
+        fi
+    done
+}
+
 
 function get_dfbin_file() {
     local file=$1
@@ -311,6 +353,11 @@ dfman_env() {
             ;;
         "filter")
             shift;
+            path_to_filter=$1
+            if [[ -z $path_to_filter ]]; then
+                echo "Usage: dfman env filter <path>"
+                return 1
+            fi
             filter_out_of_path $1
             ;;
         "restore")

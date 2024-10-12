@@ -1,0 +1,46 @@
+#!/bin/bash
+#
+
+IFS=$'\n'
+dry_run=false
+verbose=false
+TEMP=`getopt -o nhv --long dry-run,help -n 'example.bash' -- "$@"`
+if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
+# Note the quotes around `$TEMP': they are essential!
+eval set -- "$TEMP"
+
+while true ; do
+  case "$1" in
+    -n|--dry-run) dry_run=true ; shift ;;
+    -h|--help) usage; shift ;;
+    -v) verbose=true; shift ;;
+    --) shift ; break ;;
+    *) echo "Internal error!" ; exit 1 ;;
+  esac
+done
+
+if [[ $# == 0 ]]; then
+  PDIR=`pwd`
+else
+  PDIR=$1
+fi
+
+# ! [ -d "$PDIR" ] && echo "[ERROR] $PDIR is not a directory" && exit
+
+function __convert() {
+  f=$1
+  $dry_run && echo "[INFO] would convert $f" && return || echo -n "[INFO] converting $f ...";
+  # create a backup (.orig), use translate (tr) to remove
+  cp $f $f.orig && tr -d '\015' <$f >$f.conv && mv $f.conv $f && chmod +x $f;
+  diff --strip-trailing-cr $f.orig $f && echo "done" && rm $f.orig
+}
+
+for f in `find $PDIR -type d \( -path $PDIR/.git \) -prune -o -print`; do
+  $verbose && echo "[INFO] working on $f"
+  #
+  filetype=$(file -i "$f" | cut -d':' -f2 | cut -d ' ' -f2 | cut -d '/' -f1)
+  [[ $filetype == "text" ]] || continue; # only work on text files
+  egrep $'\r'\$ $f &> /dev/null;
+  do_convert=$?
+  [[ $do_convert == "0" ]] && __convert $f || ($verbose && echo "[INFO] $f has unix line endings");
+done;

@@ -1,0 +1,2 @@
+#!/bin/bash
+wget -m -k -K -E $1 -o $2

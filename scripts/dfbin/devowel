@@ -1,0 +1,27 @@
+#!/usr/bin/env python
+
+"""A simple python script template.
+"""
+
+from __future__ import print_function
+import os
+import sys
+import argparse
+
+def devowel(c):
+  from itertools import groupby
+  vowels = 'aeiou'
+  temp_list = [l for l in c if l.lower() not in vowels]
+  return ''.join([x[0] for x in groupby(temp_list)])
+
+def main(arguments):
+  parser = argparse.ArgumentParser(
+      description=__doc__,
+      formatter_class=argparse.RawDescriptionHelpFormatter)
+  parser.add_argument('inparam', help="input parameter")
+  args = parser.parse_args(arguments)
+  print(devowel(args.inparam))
+
+if __name__ == '__main__':
+  sys.exit(main(sys.argv[1:]))
+

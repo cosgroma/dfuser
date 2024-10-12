@@ -1,0 +1,206 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""Usage:
+    dotdir [options] [PATH]
+
+Arguments:
+
+  PATH    optional path, uses current working directory as default
+
+Options:
+  -h --help
+  -v                 verbose mode
+  -l, --level N      set level
+  -d, --dirs-only    directories only
+"""
+import os
+from docopt import docopt
+import pydotplus
+
+debug = False
+MAX_LEVEL = 3
+
+
+def hex_to_RGB(hex):
+  ''' "#FFFFFF" -> [255,255,255] '''
+  # Pass 16 to the integer function for change of base
+  return [int(hex[i:i + 2], 16) for i in range(1, 6, 2)]
+
+
+def RGB_to_hex(RGB):
+  ''' [255,255,255] -> "#FFFFFF" '''
+  # Components need to be integers for hex to make sense
+  RGB = [int(x) for x in RGB]
+  return "#" + "".join(["0{0:x}".format(v) if v < 16 else
+                        "{0:x}".format(v) for v in RGB])
+
+
+def color_dict(gradient):
+  ''' Takes in a list of RGB sub-lists and returns dictionary of
+    colors in RGB and hex form for use in a graphing function
+    defined later on '''
+  return {"hex": [RGB_to_hex(RGB) for RGB in gradient],
+          "r": [RGB[0] for RGB in gradient],
+          "g": [RGB[1] for RGB in gradient],
+          "b": [RGB[2] for RGB in gradient]}
+
+
+def linear_gradient(start_hex, finish_hex="#FFFFFF", n=10):
+  ''' returns a gradient list of (n) colors between
+    two hex colors. start_hex and finish_hex
+    should be the full six-digit color string,
+    inlcuding the number sign ("#FFFFFF") '''
+  # Starting and ending colors in RGB form
+  s = hex_to_RGB(start_hex)
+  f = hex_to_RGB(finish_hex)
+  # Initilize a list of the output colors with the starting color
+  RGB_list = [s]
+  # Calcuate a color at each evenly spaced value of t from 1 to n
+  for t in range(1, n):
+    # Interpolate RGB vector for color at the current value of t
+    curr_vector = [
+        int(s[j] + (float(t) / (n - 1)) * (f[j] - s[j]))
+        for j in range(3)
+    ]
+    # Add it to our list of output colors
+    RGB_list.append(curr_vector)
+
+  return color_dict(RGB_list)
+
+gradient = linear_gradient("#f0f0f0", finish_hex="#737373", n=10)
+
+# print(gradient)
+
+ext_dict = {
+    "": "lightgoldenrodyellow",
+    ".a": "#80b1d3",
+    ".bin": "#bebada",
+    ".c": "#ffffb3",
+    ".cloc": "antiquewhite",
+    ".cls": "#fccde5",
+    ".cpp": "#bebada",
+    ".css": "#fdb462",
+    ".dox": "#d9d9d9",
+    ".elf": "#ccebc5",
+    ".geom": "bisque",
+    ".gitignore": "lightblue",
+    ".h": "#8dd3c7",
+    ".html": "lightcyan",
+    ".inc": "lightgoldenrodyellow",
+    ".ini": "#ffed6f",
+    ".jpeg": "lightgoldenrodyellow",
+    ".js": "#bc80bd",
+    ".json": "#fb8072",
+    ".m": "#f08b84",
+    ".mat": "#ebd8ab",
+    ".md": "#ccebc5",
+    ".mk": "#bebada",
+    ".mk": "lightsalmon",
+    ".out": "lightblue",
+    ".png": "lightseagreen",
+    ".py": "lightskyblue",
+    ".rst": "#80b1d3",
+    ".sh": "lightsalmon",
+    ".so": "#bebada",
+    ".sty": "#b3de69",
+    ".v0": "lightsteelblue",
+    ".xml": "lightyellow",
+    ".yml": "#ffed6f",
+}
+
+# "#b3e2cd"
+# "#fdcdac"
+# "#cbd5e8"
+# "#f4cae4"
+# "#e6f5c9"
+# "#fff2ae"
+# "#f1e2cc"
+# "#cccccc"
+
+
+def add_folder(graph, foldername, node_name, parentname=None):
+  node = pydotplus.Node(name=node_name, shape="folder", label=foldername, fillcolor=gradient["hex"][graph["current_level"]], style="filled")
+  graph["dot_graph"].add_node(node)
+  if parentname:
+    e = pydotplus.Edge(src=parentname, dst=node_name)
+    graph["dot_graph"].add_edge(e)
+
+
+def add_file(graph, filename, node_name, parentname=None):
+  file_extension = os.path.splitext(filename)[1]
+  extension = file_extension.lower()
+  color = "#cccccc" if extension not in ext_dict.keys() else ext_dict[extension]
+  node = pydotplus.Node(name=node_name, shape="note", label=filename, fillcolor=color, style="filled")
+  graph["dot_graph"].add_node(node)
+  if parentname:
+    e = pydotplus.Edge(src=parentname, dst=node_name)
+    graph["dot_graph"].add_edge(e)
+
+
+def process_path(root_path, graph, max_level):
+  graph["current_level"] += 1
+  if graph["current_level"] > max_level:
+    graph["current_level"] -= 1
+    return
+  basename = os.path.basename(root_path)
+  if debug:
+    print("basename : %s" % (basename,))
+  for obj in os.listdir(root_path):
+    obj_path = os.path.join(root_path, obj)
+    parentname = '_'.join(graph["tree_history"])
+    obj_node_name = '_'.join(graph["tree_history"])
+    obj_node_name += "_" + obj
+    if '.git' in obj or 'build' in obj or '.dep' in obj or '.archive' in obj or '.backup' in obj:
+      continue
+    if os.path.isdir(obj_path):
+      parentname = '_'.join(graph["tree_history"])
+      graph["tree_history"].append(obj)
+      if debug:
+        print("add_folder: %s\n\tobj: %s\n\tparentname: %s" % (obj_node_name, obj, parentname))
+      add_folder(graph, obj, obj_node_name, parentname=parentname)
+      process_path(obj_path, graph, max_level)
+      graph["tree_history"].pop()
+      if debug:
+        print("\tparentname now: %s" % ('_'.join(graph["tree_history"]),))
+    else:
+      if graph["dirs-only"] or obj == 'temp.dot':
+        continue
+      if debug:
+        print("add_file: %s\n\tparentname: %s" % (obj_node_name, parentname))
+      add_file(graph, obj, obj_node_name, parentname=parentname)
+
+  graph["current_level"] -= 1
+
+
+def main(arguments):
+  if arguments["PATH"]:
+    if os.path.isdir(os.path.relpath(arguments["PATH"])):
+      root_path = os.path.relpath(arguments["PATH"])
+  else:
+    root_path = os.getcwd()
+  max_level = int(arguments["--level"])
+  tree_history = os.path.abspath(root_path).split(os.sep)
+  home_index = tree_history.index("home")
+  tree_history = tree_history[home_index:]
+  graph = {
+      "dot_graph": pydotplus.Dot(graph_type='graph'),
+      "current_level": 0,
+      "tree_history": tree_history,
+      "dirs-only": arguments["--dirs-only"]
+  }
+  graph["dot_graph"].set("rankdir", "LR")
+  # graph["dot_graph"].set("rankdir", "TD")
+  graph["dot_graph"].set("splines", "ortho")
+  basename = os.path.basename(root_path)
+  obj_node_name = '_'.join(graph["tree_history"])
+  add_folder(graph, basename, obj_node_name)
+  process_path(root_path, graph, max_level)
+  
+  print(graph["dot_graph"].to_string())
+
+
+if __name__ == '__main__':
+  arguments = docopt(__doc__)
+  # print(arguments)
+  # print(arguments)
+  main(arguments)

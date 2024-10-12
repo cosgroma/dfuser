@@ -1,0 +1,4 @@
+#!/bin/bash
+
+hostcolor=$(echo $(echo $1 | sum | awk -v ncolors=256 'ncolors>1 {print 1 + ($1 % (ncolors - 1))}')m)
+echo -e "\033[38;5;${hostcolor}$1\t\033[0m"

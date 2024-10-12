@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [[ -z $xil_version ]]; then
+  echo "what is the xilinx version? (14.X)"
+  read xil_version
+  echo "xil_version=$xil_version" >> ~/.userrc
+fi
+export PATH=/cygdrive/c/Xilinx/$xil_version/ISE_DS/ISE/bin/nt64:/cygdrive/c/Xilinx/$xil_version/ISE_DS/ISE/lib/nt64:/cygdrive/c/Xilinx/$xil_version/ISE_DS/PlanAhead/bin:/cygdrive/c/Xilinx/$xil_version/ISE_DS/EDK/bin/nt64:/cygdrive/c/Xilinx/$xil_version/ISE_DS/EDK/lib/nt64:/cygdrive/c/Xilinx/$xil_version/ISE_DS/EDK/gnu/microblaze/nt64/bin:/cygdrive/c/Xilinx/$xil_version/ISE_DS/EDK/gnu/powerpc-eabi/nt64/bin:/cygdrive/c/Xilinx/$xil_version/ISE_DS/EDK/gnuwin/bin:/cygdrive/c/Xilinx/$xil_version/ISE_DS/EDK/gnu/arm/nt/bin:/cygdrive/c/Xilinx/$xil_version/ISE_DS/EDK/gnu/microblaze/linux_toolchain/nt64_be/bin:/cygdrive/c/Xilinx/$xil_version/ISE_DS/EDK/gnu/microblaze/linux_toolchain/nt64_le/bin:/cygdrive/c/Xilinx/$xil_version/ISE_DS/common/bin/nt64:/cygdrive/c/Xilinx/$xil_version/ISE_DS/common/lib/nt64:$DEF_PATH
+export XILINX=C:\\Xilinx\\$xil_version\\ISE_DS\\ISE
+export XILINX_DSP=C:\\Xilinx\\$xil_version\\ISE_DS\\ISE
+export XILINX_EDK=C:\\Xilinx\\$xil_version\\ISE_DS\\EDK
+export XILINX_PLANAHEAD=C:\\Xilinx\\$xil_version\\ISE_DS\\PlanAhead

@@ -1,0 +1,6 @@
+#!/bin/bash
+package_list=(setuptools astroid chaco CherryPy configobj Cython dicttoxml enable enaml html2text ipython logilab-common lxml Markdown markdown2 matplotlib mercurial numpy pandas patsy pyDOE Pygments pylint PyMySQL PyOpenGL-accelerate pyparsing python-dateutil pytz pyzmq scipy simplejson Sphinx spyder statsmodels tornado traits tvdb-api urlfetch visvis workdays xlrd)
+
+for p in ${package_list[@]}; do
+  pip install $p --upgrade --allow-all-external --allow-unverified $p
+done;

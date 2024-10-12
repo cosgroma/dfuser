@@ -1,0 +1,14 @@
+#!/bin/bash
+
+filename="acronyms.rst"
+echo -n '' > $filename;
+
+for f in $@; do
+  # perl -nE 'say $1  while /(\w*[A-Z]+[A-Z]\w*)/g' $f >> $filename;
+  perl -nE 'say $1 while /(\w*[A-Z]\w*[A-Z]\w*)/g' $f >> $filename;
+done;
+
+num_acronyms=$(cat $filename | sort -h | uniq | wc -l | cut -d' ' -f1)
+cat $filename | sort -h | uniq | rst_table > $filename
+
+echo "wrote $num_acronyms to $filename"

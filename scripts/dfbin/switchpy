@@ -1,0 +1,19 @@
+#!/bin/bash
+version=$1
+if [[ $1 = '' ]]; then
+  echo "Need a version"
+  exit
+elif [[ $1 = "2.7" || $1 = "3.4" ]]; then
+  rm /usr/local/bin/python /usr/local/bin/python-config /usr/local/bin/pip
+  ln -s /usr/local/bin/python$version /usr/local/bin/python
+  ln -s /usr/local/bin/python$version-config /usr/local/bin/python-config
+  ln -s /usr/local/bin/pip$version /usr/local/bin/pip
+  export PYTHONPATH=/usr/local/lib/python$version/site-packages
+else
+  echo "unknown version : $1"
+fi
+# pip -> ../Cellar/python3/3.4.2_1/bin/pip3
+# lrwxr-xr-x  1 cosgroma  admin    33B Nov  2 12:31 pip2 -> ../Cellar/python/2.7.8_2/bin/pip2
+# lrwxr-xr-x  1 cosgroma  admin    35B Nov  2 12:31 pip2.7 -> ../Cellar/python/2.7.8_2/bin/pip2.7
+# lrwxr-xr-x  1 cosgroma  admin    34B Nov  4 07:44 pip3 -> ../Cellar/python3/3.4.2_1/bin/pip3
+# lrwxr-xr-x  1 cosgroma  admin    36B Nov  4 07:44 pip3.4 -> ../Cellar/python3/3.4.2_1/bin/pip3.4

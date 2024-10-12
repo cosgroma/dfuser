@@ -1,0 +1,35 @@
+#!/usr/bin/python
+
+import sys
+import os
+import json
+import numpy as np
+
+
+def main():
+
+  basepath = os.path.dirname(os.path.realpath(__file__))
+  with open(os.path.join(basepath, 'acronym_master_list.json')) as f:
+    acronym_dict = json.load(f)
+
+  for line in sys.argv[1:]:
+    if line == "?":
+      # acronym_list = ["%-5s: %s" % (acronym, acronym_dict[acronym]) for acronym in acronym_dict.keys()]
+      # print(np.max([len(acronym) for acronym in acronym_dict.keys()]))
+      fmt_str = "%%-%ds: %%s" % (np.max([len(acronym) for acronym in acronym_dict.keys()]),)
+      acronym_list = [fmt_str % (acronym, acronym_dict[acronym]) for acronym in sorted(acronym_dict.keys())]
+      # acronym_list = ["{} : {}".format(acronym, acronym_dict[acronym]) for acronym in acronym_dict.keys()]
+      print("\n".join(acronym_list))
+      return
+    acronym = line.strip()
+    definition = acronym_dict[acronym] if acronym in acronym_dict.keys() else 'unknown'
+    if isinstance(definition, (list, tuple)):
+      # definition_set = "\n".join(definition)
+      print("%s: %d definitions" % (acronym, len(definition)))
+      for d in definition:
+        print("  %s" % (d,))
+    else:
+      print("%s: %s" % (acronym, definition))
+
+if __name__ == "__main__":
+  main()

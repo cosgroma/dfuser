@@ -1,0 +1,6 @@
+#!/bin/bash
+
+for r in `git remote`;
+do
+    git push $r --delete $@;
+done

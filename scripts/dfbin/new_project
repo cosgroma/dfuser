@@ -1,0 +1,76 @@
+#!/bin/bash
+
+workspace=$HOME/workspace
+
+. argsparse.sh
+
+argsparse_use_option project-type "project type" short:t value
+option_project_type_values=(c python)
+
+argsparse_use_option name "project name" short:n value
+argsparse_use_option output "output directory" short:o value
+
+
+printf -v argsparse_usage_description "%s\n" \
+  "A tutorial script for argsparse basics."
+
+argsparse_parse_options "$@"
+############################################################################
+## @fn
+## @brief
+## @param
+## @retval
+## @ingroup
+############################################################################
+function process_options() {
+  if ! argsparse_is_option_set "project-type"; then
+    printf "ERROR: project type not set\n"
+    exit
+  fi;
+
+  if ! argsparse_is_option_set "name"; then
+    printf "ERROR: project name not set\n"
+    exit
+  fi;
+
+  name="${program_options["name"]}"
+
+  if ! argsparse_is_option_set "output"; then
+    odir=$(pwd)/$name
+  else
+    odir="${program_options["output"]}"/$name
+  fi
+
+  if [[ -e $odir ]]; then
+    printf "ERROR: project already exists, opening\n"
+    subl --project $odir/$name.sublime-project;
+    exit
+  else
+    printf "INFO: creating project in $odir\n"
+  fi
+
+  case "${program_options["project-type"]}" in
+    c )
+      new_c_project
+      ;;
+    python )
+      ;;
+  esac
+}
+
+############################################################################
+## @fn
+## @brief
+## @param
+## @retval
+## @ingroup
+############################################################################
+function new_c_project() {
+  mkdir -p $odir/config $odir/doc $odir/src $odir/tests;
+  cp $workspace/utils/templates/makefile/makefile $odir;
+  cp $workspace/utils/templates/makefile/config/* $odir/config/;
+  sed -e "s@outdir@$odir@g" -e "s/prog/$name/g" < $workspace/utils/templates/makefile/sublime_project_template.json > $odir/$name.sublime-project
+  subl --project $odir/$name.sublime-project;
+}
+
+process_options;

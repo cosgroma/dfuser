@@ -1,0 +1,196 @@
+#!/bin/bash
+
+# Load argsparse library.
+. argsparse.sh
+
+argsparse_use_option show "show dotfiles list" short:s
+argsparse_use_option install "main installer" short:i
+argsparse_use_option remove "remove dotfiles" short:r
+argsparse_use_option update "parameterized update" short:u value
+option_update_values=(gitconfig password userpath links)
+argsparse_use_option backup "backup current dotfiles" short:b
+
+printf -v argsparse_usage_description "%s\n" \
+  "Dotfiles configuration utility" \
+  "Usage Examples:" \
+  " $(basename $0)" \
+  " $(basename $0) -i" \
+  " $(basename $0) --install" \
+  " $(basename $0) --backup" \
+  " $(basename $0) --update <gitconfig|password|userpath|links>" \
+  " $(basename $0) --remove" \
+  " $(basename $0) --show"
+
+# Command line parsing is done here.
+argsparse_parse_options "$@"
+
+DOTFILES_BASE=$(echo $(cd $(dirname $(readlink -f ${BASH_SOURCE%/*})/../../) && pwd))
+
+usrfile=$HOME/.userrc
+
+if [[ -e $usrfile ]]; then source $usrfile; fi #touch $usrfile; fi;
+
+
+dflist=(.ackrc \
+.aliases.sh \
+.autotest \
+.bash_functions.sh \
+.bash_logout \
+.bashrc \
+.dircolorsrc \
+.emacs \
+.emacs-lisp \
+.gemrc \
+.getmail \
+.gitconfig \
+.gitmessage \
+.githelpers \
+.gitmodules \
+.hgrc \
+.minttyrc \
+.mutt \
+.offlineimap.py \
+.offlineimaprc \
+.ps1_components.sh \
+.rvmrc \
+.screenrc \
+.tmux.conf \
+.vim \
+.vimrc \
+.zprofile \
+.zsh \
+.zshenv \
+.zshrc \
+.dfbin )
+
+function set_user_path() {
+  if [[ -e $HOME/.userpath.sh ]]; then
+    mkdir -p $HOME/.oldrcs;
+    cp $HOME/.userpath.sh $HOME/.oldrcs/.userpath.$(date +%Y%m%d%H%M%S).sh
+  fi
+  cp $DOTFILES_BASE/.userpath.template.sh $HOME/.userpath.sh;
+}
+
+function set_gitconfig() {
+  echo "enter name for .gitconfig"; read name && echo "name set to $name"
+  echo "enter email for .gitconfig";
+  read email
+  echo "email set to $email"
+}
+
+function set_user_password() {
+  echo "enter username for network access (default: $(whoami))"; read nuser
+  if [[ $nuser == "" ]]; then nuser=$(whoami); fi;
+  local userpass
+  local temp
+  cont=0;
+  while [[ $cont == 0 ]]; do
+    echo "enter network password for proxy configuration (for wget, github, etc.):"
+    read -s -p "" userpass
+    echo "re-enter:"
+    read -s -p "" temp
+    if [[ "$userpass" == "$temp" ]]; then
+      echo "password set"
+      cont=1
+    else
+      echo "ERROR: passwords don't match" 1>&2
+      echo "try again..."
+    fi
+  done
+  userpass64=$(echo $userpass | base64)
+}
+
+function set_user() {
+  echo "setting up user"
+  if [[ -z $email ]];      then set_gitconfig;    fi;
+  if [[ -z $userpass64 ]]; then set_user_password; fi;
+  write_user_config_file
+}
+
+function add_templates() {
+  if ! [[ -e $HOME/.userpath.sh ]]; then
+    echo "making $HOME/.userpath.sh from template"
+    cp $DOTFILES_BASE/.userpath.template.sh $HOME/.userpath.sh
+  fi
+}
+
+function write_user_config_file() {
+  echo "user=$(whoami)" > $usrfile
+  echo "nuser=$nuser" >> $usrfile
+  echo "name=\"$name\"" >> $usrfile
+  echo "email=$email" >> $usrfile
+  echo "userpass64=$userpass64" >> $usrfile
+  touch $HOME/.useraliases.sh
+  env > $HOME/.userenv.sh
+}
+
+function write_gitconfig() {
+  sed -e "s/user_name/$name/g" -e "s/user_email/$email/g" $DOTFILES_BASE/.gitconfig_default > $DOTFILES_BASE/.gitconfig
+}
+
+function set_links() {
+  echo "Setting up symlinks"
+  for f in ${dflist[@]}; do
+    ln -fs $DOTFILES_BASE/$f $HOME/$f
+  done;
+}
+
+function backup_links() {
+  dirstamp=$(date +%Y%m%d%H%M%S);
+  mkdir -p $HOME/.oldrcs/$DOTFILES_BASE/$dirstamp;
+  echo "BACKING UP SYMLINKS TO : $HOME/.oldrcs/$DOTFILES_BASE/$dirstamp"
+  for f in ${dflist[@]}; do
+    cp $HOME/$f $HOME/.oldrcs/$DOTFILES_BASEstamp/ 2>/dev/null;
+  done;
+}
+
+function remove_links() {
+  echo "REMOVING SYMLINKS"
+  for f in ${dflist[@]}; do
+    rm -rf $HOME/$f
+  done;
+}
+
+function show_config() {
+  echo "Scripts Directory = $DOTFILES_BASE"
+  echo "Dotfiles List:"
+  for f in ${dflist[@]}; do
+    echo $f
+  done;
+}
+
+# function new_plugin() {
+#   mkdir -p
+# }
+
+function show_userrc() {
+  echo "USER Configuration:"
+  cat $usrfile
+}
+
+if argsparse_is_option_set "show"; then
+  echo "SHOWING CONFIGURATION"
+  show_config && show_userrc;
+  exit;
+elif argsparse_is_option_set "install"; then
+  echo "RUNNING INSTALL"
+  set_user && set_links && add_templates && write_user_config_file && write_gitconfig;
+elif argsparse_is_option_set "backup"; then
+  backup_links;
+  exit;
+elif argsparse_is_option_set "remove"; then
+  remove_links
+elif argsparse_is_option_set "update"; then
+  case "${program_options[update]}" in
+    gitconfig ) set_gitconfig; ;;
+    password ) set_user_password; ;;
+    userpath ) set_user_path; ;;
+    links ) set_links; exit; ;;
+  esac
+  write_user_config_file;
+  write_gitconfig;
+fi
+case $(uname) in
+  Linux|Darwin) exec /bin/bash -l ;;
+  *) echo "need to restart cygwin bash for changes to take effect";;
+esac

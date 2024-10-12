@@ -1,0 +1,48 @@
+#!/usr/bin/python
+
+import sys
+import os
+import json
+
+
+def make_table(grid):
+  # cell_width = 2 + max(reduce(lambda x, y: x + y, [[len(item) for item in row] for row in grid], []))
+  cell_width = [2 + max([len(row[0]) for row in grid]), 2 + max([len(row[1]) for row in grid])]
+  # cell_width = [2 + max([len(row) for row in grid])]
+  num_cols = len(grid[0])
+  rst = table_div(num_cols, cell_width, 0)
+  header_flag = 1
+  for row in grid:
+    rst = rst + '| ' + '| '.join([normalize_cell(x, cell_width[i] - 1) for i, x in enumerate(row)]) + '|\n'
+    rst = rst + table_div(num_cols, cell_width, header_flag)
+    header_flag = 0
+  return rst
+
+
+def table_div(num_cols, col_width, header_flag):
+  sep = '=' if header_flag == 1 else '-'
+  output = ''
+  for i in range(0, num_cols):
+    output += ('+' + (col_width[i]) * sep)
+  return output + '+\n'
+
+
+def normalize_cell(string, length):
+  return string + ((length - len(string)) * ' ')
+
+
+def main():
+
+  basepath = os.path.dirname(os.path.realpath(__file__))
+  with open(os.path.join(basepath, 'acronym_master_list.json')) as f:
+    acronym_dict = json.load(f)
+
+  acronym_table = [['Acronym', 'Definition']]
+  for line in sys.stdin:
+    acronym = line.strip()
+    definition = acronym_dict[acronym] if acronym in acronym_dict.keys() else ''
+    acronym_table.append([acronym, definition])
+  print(make_table(acronym_table))
+
+if __name__ == "__main__":
+  main()

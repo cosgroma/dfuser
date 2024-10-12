@@ -1,0 +1,5 @@
+#!/bin/bash
+for f in "$@"; do
+  echo "converting $f "${f%.*}.png""
+  convert -density 300 -resize 1000x1000 $f "${f%.*}.png"
+done

@@ -1,0 +1,116 @@
+#!/bin/bash
+
+case $(uname) in
+  Linux|Darwin) python markdown_py $@ ;;
+  *)
+    declare -a cmd_list
+    cmd_list[$i]=$(cygpath -aw `which markdown2.py`)
+    i=1
+    for arg in ${@}; do
+      if [[ -e $arg ]]; then
+        cmd_list[$i]=$(cygpath -aw $arg)
+      else
+        cmd_list[$i]=$arg
+      fi
+      i=$(($i + 1))
+    done;
+    ;;
+esac
+
+# body=$(echo $(python ${cmd_list[@]} --extras code-friendly,cuddled-lists,fenced-code-blocks,footnotes,header-ids,html-classes,markdown-in-html,metadata,nofollow,pyshell,smarty-pants,toc,xml,tables,wiki-tables))
+
+#* code-friendly: Disable _ and __ for em and strong.
+#* cuddled-lists: Allow lists to be cuddled to the preceding paragraph.
+#* fenced-code-blocks: Allows a code block to not have to be indented
+#  by fencing it with '```' on a line before and after. Based on
+#  <http://github.github.com/github-flavored-markdown/> with support for
+#  syntax highlighting.
+#* footnotes: Support footnotes as in use on daringfireball.net and
+#  implemented in other Markdown processors (tho not in Markdown.pl v1.0.1).
+#* header-ids: Adds "id" attributes to headers. The id value is a slug of
+#  the header text.
+#* html-classes: Takes a dict mapping html tag names (lowercase) to a
+#  string to use for a "class" tag attribute. Currently only supports
+#  "pre" and "code" tags. Add an issue if you require this for other tags.
+#* markdown-in-html: Allow the use of `markdown="1"` in a block HTML tag to
+#  have markdown processing be done on its contents. Similar to
+#  <http://michelf.com/projects/php-markdown/extra/#markdown-attr> but with
+#  some limitations.
+#* metadata: Extract metadata from a leading '---'-fenced block.
+#  See <https://github.com/trentm/python-markdown2/issues/77> for details.
+#* nofollow: Add `rel="nofollow"` to add `<a>` tags with an href. See
+#  <http://en.wikipedia.org/wiki/Nofollow>.
+#* pyshell: Treats unindented Python interactive shell sessions as <code>
+#  blocks.
+#* link-patterns: Auto-link given regex patterns in text (e.g. bug number
+#  references, revision number references).
+#* smarty-pants: Replaces ' and " with curly quotation marks or curly
+#  apostrophes.  Replaces --, ---, ..., and . . . with en dashes, em dashes,
+#  and ellipses.
+#* toc: The returned HTML string gets a new "toc_html" attribute which is
+#  a Table of Contents for the document. (experimental)
+#* xml: Passes one-liner processing instructions and namespaced XML tags.
+#* tables: Tables using the same format as GFM
+#  <https://help.github.com/articles/github-flavored-markdown#tables> and
+#  PHP-Markdown Extra <https://michelf.ca/projects/php-markdown/extra/#table>.
+#* wiki-tables: Google Code Wiki-style tables. See
+#  <http://code.google.com/p/support/wiki/WikiSyntax#Tables>.
+extras="code-friendly,markdown-in-html,metadata,footnotes,toc,tables,header-ids,xml,fenced-code-blocks"
+
+# extras="
+# code-friendly,
+# cuddled-lists,
+# fenced-code-blocks,
+# footnotes,
+# header-ids,
+# html-classes,
+# markdown-in-html,
+# metadata,
+# nofollow,
+# pyshell,
+# smarty-pants,
+# toc,
+# xml,
+# tables,
+# wiki-tables"
+body=$(echo $(python ${cmd_list[@]} --extras $extras))
+# body=$(echo $(python ${cmd_list[@]} --extras code-friendly,html-classes,tables,header-ids,fenced-code-blocks,smarty-pants))
+title=$(echo ${1%.*})
+
+style=$(echo $(cat ${BASH_SOURCE%/*}/markdown/markdown.gfm2.css))
+# style=$(echo $(cat ${BASH_SOURCE%/*}/markdown/markdown2.css))
+script=$(echo $(cat ${BASH_SOURCE%/*}/markdown/markdown.js2.html))
+
+HTMLDOC="
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>$title</title>
+  <style>$style</style>
+  <link rel="stylesheet" href="http://yandex.st/highlightjs/7.3/styles/default.min.css">
+  $script
+</head>
+<body>
+  <article class="markdown-body">
+    $body
+  </article>
+</body>
+</html>"
+echo $HTMLDOC > $title.html
+
+  # <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  # <script type="text/javascript" charset="utf-8" src="https://cdnjs.cloudflare.com/ajax/libs/raphael/2.1.2/raphael-min.js"></script>
+  # <script type="text/javascript" charset="utf-8" src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore-min.js"></script>
+  # <script type="text/javascript" charset="utf-8" src="https://cdnjs.cloudflare.com/ajax/libs/js-sequence-diagrams/1.0.4/sequence-diagram-min.js"></script>
+# Below is the html heading which will be appended to the final .html file
+# HEADING="<html><head><title>$title</title></head>"
+# <body><h1>Log output for: $LOGFILE</h1>"
+
+# Below is the end of the html file
+# END="</body></html>"
+
+# Below all the prepared variables are stitched together to the OUTPUT/LOG FILE
+# echo $HEADING > $OUTPUTFILE
+# echo $LOGCONTENTS >> $OUTPUTFILE
+# echo $END >> $OUTPUTFILE
