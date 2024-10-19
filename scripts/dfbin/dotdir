@@ -13,65 +13,145 @@ Options:
   -l, --level N      set level
   -d, --dirs-only    directories only
 """
+import sys
 import os
 from docopt import docopt
 import pydotplus
 
+from typing import List, Dict, Any
+
 debug = False
 MAX_LEVEL = 3
 
+# setup logging
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 
 def hex_to_RGB(hex):
-  ''' "#FFFFFF" -> [255,255,255] '''
-  # Pass 16 to the integer function for change of base
-  return [int(hex[i:i + 2], 16) for i in range(1, 6, 2)]
+    """ "#FFFFFF" -> [255,255,255]"""
+    # Pass 16 to the integer function for change of base
+    return [int(hex[i : i + 2], 16) for i in range(1, 6, 2)]
+
+
+def test_hex_to_RGB():
+    assert hex_to_RGB("#FFFFFF") == [255, 255, 255]
+    assert hex_to_RGB("#000000") == [0, 0, 0]
+    assert hex_to_RGB("#FF0000") == [255, 0, 0]
+    assert hex_to_RGB("#00FF00") == [0, 255, 0]
+    assert hex_to_RGB("#0000FF") == [0, 0, 255]
+    assert hex_to_RGB("#FFFF00") == [255, 255, 0]
+    assert hex_to_RGB("#00FFFF") == [0, 255, 255]
+    assert hex_to_RGB("#FF00FF") == [255, 0, 255]
 
 
 def RGB_to_hex(RGB):
-  ''' [255,255,255] -> "#FFFFFF" '''
-  # Components need to be integers for hex to make sense
-  RGB = [int(x) for x in RGB]
-  return "#" + "".join(["0{0:x}".format(v) if v < 16 else
-                        "{0:x}".format(v) for v in RGB])
+    """[255,255,255] -> "#FFFFFF" """
+    # Components need to be integers for hex to make sense
+    RGB = [int(x) for x in RGB]
+    return "#" + "".join(
+        ["0{0:x}".format(v) if v < 16 else "{0:x}".format(v) for v in RGB]
+    )
+
+
+def test_RGB_to_hex():
+    assert RGB_to_hex([255, 255, 255]) == "#ffffff"
+    assert RGB_to_hex([0, 0, 0]) == "#000000"
+    assert RGB_to_hex([255, 0, 0]) == "#ff0000"
+    assert RGB_to_hex([0, 255, 0]) == "#00ff00"
+    assert RGB_to_hex([0, 0, 255]) == "#0000ff"
+    assert RGB_to_hex([255, 255, 0]) == "#ffff00"
+    assert RGB_to_hex([0, 255, 255]) == "#00ffff"
+    assert RGB_to_hex([255, 0, 255]) == "#ff00ff"
 
 
 def color_dict(gradient):
-  ''' Takes in a list of RGB sub-lists and returns dictionary of
+    """Takes in a list of RGB sub-lists and returns dictionary of
     colors in RGB and hex form for use in a graphing function
-    defined later on '''
-  return {"hex": [RGB_to_hex(RGB) for RGB in gradient],
-          "r": [RGB[0] for RGB in gradient],
-          "g": [RGB[1] for RGB in gradient],
-          "b": [RGB[2] for RGB in gradient]}
+    defined later on"""
+    return {
+        "hex": [RGB_to_hex(RGB) for RGB in gradient],
+        "r": [RGB[0] for RGB in gradient],
+        "g": [RGB[1] for RGB in gradient],
+        "b": [RGB[2] for RGB in gradient],
+    }
+
+
+def test_color_dict():
+    gradient = [
+        [255, 255, 255],
+        [0, 0, 0],
+        [255, 0, 0],
+        [0, 255, 0],
+        [0, 0, 255],
+        [255, 255, 0],
+        [0, 255, 255],
+        [255, 0, 255],
+    ]
+    assert color_dict(gradient) == {
+        "hex": [
+            "#ffffff",
+            "#000000",
+            "#ff0000",
+            "#00ff00",
+            "#0000ff",
+            "#ffff00",
+            "#00ffff",
+            "#ff00ff",
+        ],
+        "r": [255, 0, 255, 0, 0, 255, 0, 255],
+        "g": [255, 0, 0, 255, 0, 255, 255, 0],
+        "b": [255, 0, 0, 0, 255, 0, 255, 255],
+    }
 
 
 def linear_gradient(start_hex, finish_hex="#FFFFFF", n=10):
-  ''' returns a gradient list of (n) colors between
+    """returns a gradient list of (n) colors between
     two hex colors. start_hex and finish_hex
     should be the full six-digit color string,
-    inlcuding the number sign ("#FFFFFF") '''
-  # Starting and ending colors in RGB form
-  s = hex_to_RGB(start_hex)
-  f = hex_to_RGB(finish_hex)
-  # Initilize a list of the output colors with the starting color
-  RGB_list = [s]
-  # Calcuate a color at each evenly spaced value of t from 1 to n
-  for t in range(1, n):
-    # Interpolate RGB vector for color at the current value of t
-    curr_vector = [
-        int(s[j] + (float(t) / (n - 1)) * (f[j] - s[j]))
-        for j in range(3)
-    ]
-    # Add it to our list of output colors
-    RGB_list.append(curr_vector)
+    inlcuding the number sign ("#FFFFFF")"""
+    # Starting and ending colors in RGB form
+    s = hex_to_RGB(start_hex)
+    f = hex_to_RGB(finish_hex)
+    # Initilize a list of the output colors with the starting color
+    RGB_list = [s]
+    # Calcuate a color at each evenly spaced value of t from 1 to n
+    for t in range(1, n):
+        # Interpolate RGB vector for color at the current value of t
+        curr_vector = [
+            int(s[j] + (float(t) / (n - 1)) * (f[j] - s[j])) for j in range(3)
+        ]
+        # Add it to our list of output colors
+        RGB_list.append(curr_vector)
 
-  return color_dict(RGB_list)
+    return color_dict(RGB_list)
+
+
+def test_linear_gradient():
+    assert linear_gradient("#f0f0f0", finish_hex="#737373", n=10) == {
+        "hex": [
+            "#f0f0f0",
+            "#e6e6e6",
+            "#dcdcdc",
+            "#d2d2d2",
+            "#c8c8c8",
+            "#bebebe",
+            "#b4b4b4",
+            "#aaaaaa",
+            "#a0a0a0",
+            "#969696",
+        ],
+        "r": [240, 230, 220, 210, 200, 190, 180, 170, 160, 150],
+        "g": [240, 230, 220, 210, 200, 190, 180, 170, 160, 150],
+        "b": [240, 230, 220, 210, 200, 190, 180, 170, 160, 150],
+    }
+
 
 gradient = linear_gradient("#f0f0f0", finish_hex="#737373", n=10)
 
-# print(gradient)
-
-ext_dict = {
+ext_color_map_v0 = {
     "": "lightgoldenrodyellow",
     ".a": "#80b1d3",
     ".bin": "#bebada",
@@ -94,7 +174,6 @@ ext_dict = {
     ".m": "#f08b84",
     ".mat": "#ebd8ab",
     ".md": "#ccebc5",
-    ".mk": "#bebada",
     ".mk": "lightsalmon",
     ".out": "lightblue",
     ".png": "lightseagreen",
@@ -108,99 +187,415 @@ ext_dict = {
     ".yml": "#ffed6f",
 }
 
-# "#b3e2cd"
-# "#fdcdac"
-# "#cbd5e8"
-# "#f4cae4"
-# "#e6f5c9"
-# "#fff2ae"
-# "#f1e2cc"
-# "#cccccc"
+ext_color_map = {
+    "": "#f9f9f9",  # Default light background
+    ".a": "#6699cc",  # Archive files (cool, stable color)
+    ".bin": "#996699",  # Binary files (deep, rich color)
+    ".c": "#ffff99",  # C source code (bright yellow for visibility)
+    ".cloc": "#fafad2",  # Code documentation (light and unobtrusive)
+    ".cls": "#ffcccb",  # Class definition (soft red)
+    ".cpp": "#8e8cd8",  # C++ source code (muted purple)
+    ".css": "#ffcc80",  # Styling files (orange hues for design)
+    ".dox": "#d3d3d3",  # Documentation (neutral gray)
+    ".elf": "#99e699",  # Executable files (calm green)
+    ".geom": "#ffcc99",  # Geometric data (warm, sandy)
+    ".gitignore": "#add8e6",  # Git config (light blue)
+    ".h": "#66cc99",  # Header files (refreshing green)
+    ".html": "#b3ecff",  # HTML markup (soft blue)
+    ".inc": "#fffacd",  # Included files (pale yellow)
+    ".ini": "#fff176",  # Configuration files (vibrant yellow)
+    ".jpeg": "#ffdd99",  # Image file (muted orange)
+    ".js": "#a28bb1",  # JavaScript (subtle purple)
+    ".json": "#ff6f61",  # JSON data (vibrant coral)
+    ".m": "#ff9a8b",  # MATLAB/Objective-C (warm coral)
+    ".mat": "#e6ccb2",  # MATLAB data file (neutral beige)
+    ".md": "#99e699",  # Markdown file (green for easy readability)
+    ".mk": "#ff8c69",  # Makefile (salmon orange)
+    ".out": "#add8e6",  # Output file (calm blue)
+    ".png": "#66cdaa",  # Image file (sea green)
+    ".py": "#87cefa",  # Python script (light sky blue)
+    ".rst": "#80b1d3",  # ReStructuredText (consistent with others)
+    ".sh": "#ff8c69",  # Shell script (similar to Makefile)
+    ".so": "#8e8cd8",  # Shared object file (muted purple)
+    ".sty": "#b3de69",  # Style files (light green)
+    ".v0": "#a9a9e8",  # Versioned files (soft blue-violet)
+    ".xml": "#ffffe0",  # XML data (pale yellow)
+    ".yml": "#ffeb99",  # YAML config (vibrant light yellow)
+}
+
+filename_shape_map = {
+    "Makefile": "octagon",  # Build system (distinct, multipurpose shape)
+    "CMakeLists.txt": "hexagon",  # CMake build system (multi-faceted shape)
+    "Dockerfile": "cylinder",  # Container definition (data structure-like)
+    "LICENSE": "note",  # Legal document (note shape for text)
+    "README": "note",  # Readme documentation (textual file)
+    "requirements.txt": "parallelogram",  # Dependencies list (input-like shape)
+    "setup.py": "parallelogram",  # Python setup script (similar to requirements)
+    "Vagrantfile": "house",  # Virtual machine config (symbolizes environment)
+    "docker-compose.yml": "cylinder",  # Container orchestration (data-like)
+    "package.json": "folder",  # Node.js package manifest (holds package info)
+    "webpack.config.js": "trapezium",  # Webpack configuration (complex shape)
+    "tsconfig.json": "hexagon",  # TypeScript configuration (structured, many facets)
+    "jest.config.js": "trapezium",  # Jest testing configuration (complex and modular)
+    "babel.config.js": "trapezium",  # Babel configuration (similar to other configs)
+    "Gruntfile.js": "triangle",  # Grunt automation config (sharp, task-oriented)
+    "Gulpfile.js": "triangle",  # Gulp automation config (task-oriented, similar to Grunt)
+    "karma.conf.js": "triangle",  # Karma test runner config (pointed, task-like)
+    "tslint.json": "hexagon",  # Linter configuration (structured, many rules)
+    ".editorconfig": "note",  # Editor configuration (simple, text-based)
+    ".gitattributes": "note",  # Git attributes (text-based, similar to editorconfig)
+    ".gitmodules": "folder",  # Git submodules (holds submodule info)
+    ".prettierrc": "trapezium",  # Prettier configuration (complex, multi-faceted)
+    ".eslintrc": "trapezium",  # ESLint configuration (similar to Prettier)
+    ".nvmrc": "parallelogram",  # Node version manager config (input-like)
+    ".env": "folder",  # Environment variables (holds environment info)
+    ".babelrc": "trapezium",  # Babel configuration (similar to other configs)
+    ".gitignore": "folder",  # Git ignore file (holds ignored files)
+    "build.gradle": "octagon",  # Gradle build system (distinct, multipurpose shape)
+    "pom.xml": "hexagon",  # Maven build system (multi-faceted shape)
+    "Gemfile": "parallelogram",  # Ruby dependencies (input-like shape)
+    "Pipfile": "parallelogram", # Python dependencies (similar to requirements)
+    "yarn.lock": "folder", # Yarn lockfile (holds package info)
+    "package-lock.json": "folder", # NPM lockfile (holds package info)
+    "Procfile": "folder", # Heroku process file (holds process info)
+    ".travis.yml": "cylinder", # Travis CI configuration (data-like)
+    "circle.yml": "cylinder", # Circle CI configuration (data-like)
+    "azure-pipelines.yml": "cylinder", # Azure Pipelines configuration (data-like)
+    "Jenkinsfile": "cylinder", # Jenkins pipeline configuration (data-like)
+    "tox.ini": "parallelogram", # Tox testing configuration (input-like)
+}
+
+ext_shape_map = {
+    ".a": "diamond",  # Archive files (libraries)
+    ".bin": "cylinder",  # Binary files (data storage)
+    ".c": "box",  # C source code
+    ".cloc": "note",  # Code documentation (comments/metrics)
+    ".cls": "parallelogram",  # Class definition (LaTeX, etc.)
+    ".cpp": "box3d",  # C++ source code
+    ".css": "triangle",  # Styling files
+    ".dox": "note",  # Documentation
+    ".elf": "hexagon",  # Executable file (Linux ELF)
+    ".geom": "octagon",  # Geometric data files
+    ".git": "tab",  # Git repository
+    ".gitignore": "tab",  # Configuration file for Git
+    ".gitkeep": "tab",  # Keep empty directory in Git
+    ".gitmodules": "tab",  # Git submodules
+    ".h": "box",  # Header files
+    ".html": "oval",  # HTML markup
+    ".inc": "folder",  # Included files
+    ".ini": "note",  # Configuration files
+    ".jpeg": "egg",  # Image file
+    ".js": "parallelogram",  # JavaScript
+    ".json": "cylinder",  # JSON data files
+    ".m": "box",  # MATLAB or Objective-C source
+    ".mat": "ellipse",  # MATLAB data file
+    ".md": "note",  # Markdown file
+    ".mk": "component",  # Makefiles
+    ".out": "house",  # Output file (intermediate compilation results)
+    ".png": "egg",  # Image file
+    ".py": "hexagon",  # Python script
+    ".rst": "note",  # ReStructuredText documentation
+    ".sh": "trapezium",  # Shell script
+    ".so": "cylinder",  # Shared object file (libraries)
+    ".sty": "component",  # Style files (LaTeX)
+    ".v0": "pentagon",  # Versioned files (arbitrary version extension)
+    ".xml": "folder",  # XML data files
+    ".yml": "note",  # YAML configuration files
+    ".tar.gz": "folder",  # Compressed tarball
+    ".zip": "folder",  # Compressed zip archive
+    ".7z": "folder",  # Compressed 7zip archive
+}
 
 
 def add_folder(graph, foldername, node_name, parentname=None):
-  node = pydotplus.Node(name=node_name, shape="folder", label=foldername, fillcolor=gradient["hex"][graph["current_level"]], style="filled")
-  graph["dot_graph"].add_node(node)
-  if parentname:
-    e = pydotplus.Edge(src=parentname, dst=node_name)
-    graph["dot_graph"].add_edge(e)
+    node = pydotplus.Node(
+        name=node_name,
+        shape="folder",
+        label=foldername,
+        fillcolor=gradient["hex"][graph["current_level"]],
+        style="filled",
+    )
+    graph["dot_graph"].add_node(node)
+    if parentname:
+        e = pydotplus.Edge(src=parentname, dst=node_name)
+        graph["dot_graph"].add_edge(e)
+
+
+def add_file_v0(graph, filename, node_name, parentname=None):
+    file_extension = os.path.splitext(filename)[1]
+    extension = file_extension.lower()
+    color = (
+        "#cccccc" if extension not in ext_color_map.keys() else ext_color_map[extension]
+    )
+    node = pydotplus.Node(
+        name=node_name, shape="note", label=filename, fillcolor=color, style="filled"
+    )
+    graph["dot_graph"].add_node(node)
+    if parentname:
+        e = pydotplus.Edge(src=parentname, dst=node_name)
+        graph["dot_graph"].add_edge(e)
 
 
 def add_file(graph, filename, node_name, parentname=None):
-  file_extension = os.path.splitext(filename)[1]
-  extension = file_extension.lower()
-  color = "#cccccc" if extension not in ext_dict.keys() else ext_dict[extension]
-  node = pydotplus.Node(name=node_name, shape="note", label=filename, fillcolor=color, style="filled")
-  graph["dot_graph"].add_node(node)
-  if parentname:
-    e = pydotplus.Edge(src=parentname, dst=node_name)
-    graph["dot_graph"].add_edge(e)
+    """Add a file node to the graph.
 
+    Args:
+        graph (_type_): _description_
+        filename (_type_): _description_
+        node_name (_type_): _description_
+        parentname (_type_, optional): _description_. Defaults to None.
+    """
+    file_extension = os.path.splitext(filename)[1].lower()
+    extension = ext_color_map.get(file_extension, "#cccccc")
+    if filename in filename_shape_map:
+        shape = filename_shape_map[filename]
+    else:
+        shape = ext_shape_map.get(file_extension, "note")
+
+    node = pydotplus.Node(
+        name=node_name, shape=shape, label=filename, fillcolor=extension, style="filled"
+    )
+    graph["dot_graph"].add_node(node)
+    graph["nodes"].append(
+        {"filename": filename, "node_name": node_name, "extension": file_extension}
+    )
+
+    if parentname:
+        e = pydotplus.Edge(src=parentname, dst=node_name)
+        graph["dot_graph"].add_edge(e)
+
+
+# rules = [
+#     {
+#         "source_ext": ".o",
+#         "target_ext": ".c",
+#         "relationship": lambda src, dst: dst.replace(".o", ".c"),
+#     },
+#     {
+#         "source_pattern": "test_{}.c",
+#         "target_pattern": "{}.c",
+#         "relationship": lambda src, dst: src.replace("test_", "") == dst,
+#     },
+# ]
+
+rules = [
+    {
+        "source_ext": ".o",
+        "target_ext": ".c",
+        "relationship": lambda src, dst: src.replace(".o", ".c") == dst,
+    },
+    {
+        "source_pattern": "test_{}.c",
+        "target_pattern": "{}.c",
+        "relationship": lambda src, dst: src
+        == dst,  # Matches test file and source file
+    },
+]
+
+
+def post_process_relationships(graph, rules):
+    for rule in rules:
+        for src_node in graph["nodes"]:
+            for dst_node in graph["nodes"]:
+                # Check based on file extension rule
+                if "source_ext" in rule and src_node["extension"] == rule["source_ext"]:
+                    if dst_node["extension"] == rule["target_ext"]:
+                        # Apply the relationship function
+                        if rule["relationship"](
+                            src_node["filename"], dst_node["filename"]
+                        ):
+                            e = pydotplus.Edge(
+                                src=dst_node["node_name"], dst=src_node["node_name"]
+                            )
+                            graph["dot_graph"].add_edge(e)
+
+                # Check based on file name pattern rule
+                elif "source_pattern" in rule:
+                    src_base = src_node["filename"].replace(
+                        rule["source_pattern"].format(""), ""
+                    )
+                    dst_base = dst_node["filename"].replace(
+                        rule["target_pattern"].format(""), ""
+                    )
+                    if rule["relationship"](src_base, dst_base):
+                        e = pydotplus.Edge(
+                            src=dst_node["node_name"], dst=src_node["node_name"]
+                        )
+                        graph["dot_graph"].add_edge(e)
+
+PATH_IGNORE = [".git", "build", ".dep", ".archive", ".backup", ".vscode", ".idea"]
 
 def process_path(root_path, graph, max_level):
-  graph["current_level"] += 1
-  if graph["current_level"] > max_level:
-    graph["current_level"] -= 1
-    return
-  basename = os.path.basename(root_path)
-  if debug:
-    print("basename : %s" % (basename,))
-  for obj in os.listdir(root_path):
-    obj_path = os.path.join(root_path, obj)
-    parentname = '_'.join(graph["tree_history"])
-    obj_node_name = '_'.join(graph["tree_history"])
-    obj_node_name += "_" + obj
-    if '.git' in obj or 'build' in obj or '.dep' in obj or '.archive' in obj or '.backup' in obj:
-      continue
-    if os.path.isdir(obj_path):
-      parentname = '_'.join(graph["tree_history"])
-      graph["tree_history"].append(obj)
-      if debug:
-        print("add_folder: %s\n\tobj: %s\n\tparentname: %s" % (obj_node_name, obj, parentname))
-      add_folder(graph, obj, obj_node_name, parentname=parentname)
-      process_path(obj_path, graph, max_level)
-      graph["tree_history"].pop()
-      if debug:
-        print("\tparentname now: %s" % ('_'.join(graph["tree_history"]),))
-    else:
-      if graph["dirs-only"] or obj == 'temp.dot':
-        continue
-      if debug:
-        print("add_file: %s\n\tparentname: %s" % (obj_node_name, parentname))
-      add_file(graph, obj, obj_node_name, parentname=parentname)
+    graph["current_level"] += 1
+    if graph["current_level"] > max_level:
+        graph["current_level"] -= 1
+        return
+    basename = os.path.basename(root_path)
+    logger.debug(f"basename : {basename}")
 
-  graph["current_level"] -= 1
+    for obj in os.listdir(root_path):
+        obj_path = os.path.join(root_path, obj)
+        parentname = "_".join(graph["tree_history"])
+        obj_node_name = "_".join(graph["tree_history"])
+        obj_node_name += "_" + obj
+        if obj in PATH_IGNORE:
+            continue
+        
+        if os.path.isdir(obj_path):
+            parentname = "_".join(graph["tree_history"])
+            graph["tree_history"].append(obj)
+            logger.debug(f"parentname: {parentname}")
+            add_folder(graph, obj, obj_node_name, parentname=parentname)
+            logger.debug(f"add_folder: {obj_node_name}\n\tobj: {obj}\n\tparentname: {parentname}")
+            process_path(obj_path, graph, max_level)
+            graph["tree_history"].pop()
+            logger.debug(f"parentname now: {'_'.join(graph['tree_history'])}")
+        else:
+            if graph["dirs-only"] or obj == "temp.dot":
+                continue
+            if debug:
+                print("add_file: %s\n\tparentname: %s" % (obj_node_name, parentname))
+            add_file(graph, obj, obj_node_name, parentname=parentname)
+
+    graph["current_level"] -= 1
+
+
+class Graph:
+    def __init__(self):
+        self.dot_graph = pydotplus.Dot(graph_type="graph")
+        self.current_level = 0
+        self.tree_history = []
+        self.dirs_only = False
+        self.nodes = []
+        self.rules = []
+    
+    def add_root(self, root_path):
+        basename = os.path.basename(root_path)
+        obj_node_name = "_".join(self.tree_history)
+        self.add_folder(basename, obj_node_name)
+
+    def add_folder(self, foldername, node_name, parentname=None):
+        node = pydotplus.Node(
+            name=node_name,
+            shape="folder",
+            label=foldername,
+            fillcolor=gradient["hex"][self.current_level],
+            style="filled",
+        )
+        self.dot_graph.add_node(node)
+        if parentname:
+            e = pydotplus.Edge(src=parentname, dst=node_name)
+            self.dot_graph.add_edge(e)
+
+    def add_file(self, filename, node_name, parentname=None):
+        file_extension = os.path.splitext(filename)[1].lower()
+        extension = ext_color_map.get(file_extension, "#cccccc")
+        shape = ext_shape_map.get(file_extension, "note")
+
+        node = pydotplus.Node(
+            name=node_name,
+            shape=shape,
+            label=filename,
+            fillcolor=extension,
+            style="filled",
+        )
+        self.dot_graph.add_node(node)
+        self.nodes.append(
+            {"filename": filename, "node_name": node_name, "extension": file_extension}
+        )
+
+        if parentname:
+            e = pydotplus.Edge(src=parentname, dst=node_name)
+            self.dot_graph.add_edge(e)
+    
+    def process_path(self, root_path, max_level):
+        self.current_level += 1
+        if self.current_level > max_level:
+            self.current_level -= 1
+            return
+        basename = os.path.basename(root_path)
+        logger.debug(f"basename : {basename}")
+
+        for obj in os.listdir(root_path):
+            obj_path = os.path.join(root_path, obj)
+            parentname = "_".join(self.tree_history)
+            obj_node_name = "_".join(self.tree_history)
+            obj_node_name += "_" + obj
+            if obj in PATH_IGNORE:
+                continue
+            
+            if os.path.isdir(obj_path):
+                parentname = "_".join(self.tree_history)
+                self.tree_history.append(obj)
+                logger.debug(f"parentname: {parentname}")
+                self.add_folder(obj, obj_node_name, parentname=parentname)
+                logger.debug(f"add_folder: {obj_node_name}\n\tobj: {obj}\n\tparentname: {parentname}")
+                self.process_path(obj_path, max_level)
+                self.tree_history.pop()
+                logger.debug(f"parentname now: {'_'.join(self.tree_history)}")
+            else:
+                if self.dirs_only or obj == "temp.dot":
+                    continue
+                if debug:
+                    print("add_file: %s\n\tparentname: %s" % (obj_node_name, parentname))
+                self.add_file(obj, obj_node_name, parentname=parentname)
 
 
 def main(arguments):
-  if arguments["PATH"]:
-    if os.path.isdir(os.path.relpath(arguments["PATH"])):
-      root_path = os.path.relpath(arguments["PATH"])
-  else:
-    root_path = os.getcwd()
-  max_level = int(arguments["--level"])
-  tree_history = os.path.abspath(root_path).split(os.sep)
-  home_index = tree_history.index("home")
-  tree_history = tree_history[home_index:]
-  graph = {
-      "dot_graph": pydotplus.Dot(graph_type='graph'),
-      "current_level": 0,
-      "tree_history": tree_history,
-      "dirs-only": arguments["--dirs-only"]
-  }
-  graph["dot_graph"].set("rankdir", "LR")
-  # graph["dot_graph"].set("rankdir", "TD")
-  graph["dot_graph"].set("splines", "ortho")
-  basename = os.path.basename(root_path)
-  obj_node_name = '_'.join(graph["tree_history"])
-  add_folder(graph, basename, obj_node_name)
-  process_path(root_path, graph, max_level)
-  
-  print(graph["dot_graph"].to_string())
+    if arguments["PATH"]:
+        if os.path.isdir(os.path.relpath(arguments["PATH"])):
+            root_path = os.path.relpath(arguments["PATH"])
+    else:
+        root_path = os.getcwd()
+    if "--level" in arguments and arguments["--level"]:
+        max_level = int(arguments["--level"])
+    else:
+        max_level = MAX_LEVEL
+
+    tree_history = os.path.abspath(root_path).split(os.sep)
+
+    # get username
+    username = os.environ.get("USER")
+
+    # get index of username in tree_history
+    home_index = tree_history.index(username)
+    tree_history = tree_history[home_index:]
+
+    graph = {
+        "dot_graph": pydotplus.Dot(graph_type="graph"),
+        "current_level": 0,
+        "tree_history": tree_history,
+        "dirs-only": arguments["--dirs-only"],
+        "nodes": [],  # Store nodes to apply relationships later
+    }
+
+    graph["dot_graph"].set("rankdir", "LR")
+    # graph["dot_graph"].set("rankdir", "TD")
+    # graph["dot_graph"].set("splines", "ortho")
+
+    basename = os.path.basename(root_path)
+    obj_node_name = "_".join(graph["tree_history"])
+    add_folder(graph, basename, obj_node_name)
+    process_path(root_path, graph, max_level)
+    # Apply post-processing rules after building the graph
+    # post_process_relationships(graph, rules)
+
+    git_repo_name = os.path.basename(os.path.abspath(os.path.join(root_path, ".git")))
+    # get parent directory name of git repo
+    parent_dir = os.path.basename(
+        os.path.abspath(os.path.join(root_path, ".git", ".."))
+    )
+
+    # write the graph to a file
+    filename = f"{parent_dir}.dot"
+    print(f"Writing graph to {filename}")
+    with open(filename, "w") as f:
+        f.write(graph["dot_graph"].to_string())
+    # print(graph["dot_graph"].to_string())
 
 
-if __name__ == '__main__':
-  arguments = docopt(__doc__)
-  # print(arguments)
-  # print(arguments)
-  main(arguments)
+if __name__ == "__main__":
+    arguments = docopt(__doc__)
+    # print(arguments)
+    # print(arguments)
+    main(arguments)

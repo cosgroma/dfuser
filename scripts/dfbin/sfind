@@ -1,2 +1,5 @@
-#!/bin/sh
+#!/bin/bash
+
+# This function searches for and displays files containing the specified text
+
 find . -type f -exec grep -Hn $1 {} \;

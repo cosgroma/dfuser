@@ -1,5 +1,27 @@
 #!/bin/bash
 
+# This script generates a Mandelbrot set visualization in the terminal.
+# 
+# Function: doBash
+# 
+# Variables:
+# - P: Precision scaling factor (10^8)
+# - Q: Derived from P (P/100)
+# - X: Horizontal scaling factor (320*Q/cols)
+# - Y: Vertical scaling factor (210*Q/lines)
+# - a, b, c: Temporary variables for calculations
+# - i: Iteration counter
+# - v, x, y: Coordinates for the Mandelbrot set
+# 
+# The outer loop iterates over the vertical axis (y) from -105*Q to 105*Q.
+# The inner loop iterates over the horizontal axis (x) from v to P.
+# 
+# For each point (x, y), the script calculates whether it belongs to the Mandelbrot set
+# by iterating up to 99 times or until the condition a^2 + b^2 < 4*P^2 is met.
+# 
+# The colorBox function is called to display the point with a color based on the iteration count.
+# 
+# Finally, the script prints the generated Mandelbrot set to the terminal.
 function doBash {
   typeset P Q X Y a b c i v x y
   for ((P=10**8,Q=P/100,X=320*Q/cols,Y=210*Q/lines,y=-105*Q,v=-220*Q,x=v;y<105*Q;x=v,y+=Y)); do

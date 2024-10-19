@@ -1,13 +1,19 @@
 #!/bin/bash
 #
 
-case $_myos in
-   Linux) VIVADO_PATH=/opt/Xilinx/Vivado ;;
-       *) VIVADO_PATH=/cygdrive/c/Xilinx/Vivado ;;
-esac
+
+# find xilinx path at common locations like /opt or /apps
+XILINX_PATH=$(find /opt -maxdepth 1 -type d -name "Xilinx*" | sort | tail -n 1)
+XILINX_PATH=${XILINX_PATH:-$(find /apps -maxdepth 1 -type d -name "Xilinx*" | sort | tail -n 1)}
+
+
+# find vivado path at common locations
+VIVADO_PATH=$(find $XILINX_PATH -maxdepth 1 -type d -name "Vivado*" | sort | tail -n 1)
+SDK_PATH=$(find $XILINX_PATH -maxdepth 1 -type d -name "SDK*" | sort | tail -n 1)
+VITIS_PATH=$(find $XILINX_PATH -maxdepth 1 -type d -name "Vitis*" | sort | tail -n 1)
 
 function set_xilinx_version() {
-  [[ -e $VIVADO_PATH ]] || (echo "ERROR: vivado not installed "; return)
+  [[ -z $VIVADO_PATH ]] || (echo "ERROR: vivado not installed "; return)
   printf -v str '%s ' `ls $VIVADO_PATH`;
   IFS=' ' declare -a 'versions=($str)';
   vlen=${#versions[@]};
@@ -25,12 +31,52 @@ function set_xilinx_version() {
   echo -e "set version to: $GREEN$xilinx_version$RESET"
 }
 
-function xilinx() {
-  [[ -z $xilinx_version ]] && set_xilinx_version
-  source /opt/Xilinx/SDK/$xilinx_version/settings64.sh
-  source /opt/Xilinx/Vivado/$xilinx_version/settings64.sh
+function log_error() {
+  echo -e $RED"ERROR"$RESET": $1"
 }
 
+function log_info() {
+  echo -e $GREEN"INFO"$RESET": $1"
+}
+
+function log_warn() {
+  echo -e $YELLOW"WARN"$RESET": $1"
+}
+
+
+
+function xilinx() {
+  
+  source $SDK_PATH/$xilinx_version/settings64.sh
+  source $VIVADO_PATH/$xilinx_version/settings64.sh
+}
+
+function cmd_deactivate() {
+  unset xilinx_version
+  unset XILINX_PATH
+  unset VIVADO_PATH
+  unset SDK_PATH
+  unset VITIS_PATH
+  unset -f xilinx
+}
+
+function cmd_use() {
+  [[ -z $xilinx_version ]] && set_xilinx_version
+  xilinx
+}
+
+function cmd_list() {
+  printf -v str '%s ' `ls $VIVADO_PATH`;
+  IFS=' ' declare -a 'versions=($str)';
+  vlen=${#versions[@]};
+  for (( i=0; i<${vlen}; i++ )); do
+    echo -e $i ':'$GREEN$attr$RESET${versions[$i]}
+  done
+}
+
+function cmd_current() {
+  echo $xilinx_version
+}
 
 case $COMMAND in
   "deactivate" )
@@ -40,10 +86,6 @@ case $COMMAND in
   "list" )
   ;;
   "current" )
-  ;;
-  "version" )
-  ;;
-  "version-remote" )
   ;;
   "--version" )
   ;;

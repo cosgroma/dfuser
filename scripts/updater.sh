@@ -29,28 +29,28 @@ function check_for_updates() {
             LOCAL=$(git rev-parse HEAD)
             REMOTE=$(git rev-parse @{u})
             BASE=$(git merge-base HEAD @{u})
-
+            
             # echo "Local: $LOCAL"
             # echo "Remote: $REMOTE"
             # echo "Base: $BASE"
             if [ $LOCAL = $REMOTE ]; then
                 echo "DFUSER is up-to-date"
-            elif [ $LOCAL = $BASE ]; then
+                elif [ $LOCAL = $BASE ]; then
                 echo "DFUSER needs to be updated"
                 if has_uncommited_changes; then
                     echo "DFUSER has uncommited changes"
                     echo "Please commit your changes before updating"
                 fi
-
+                
                 git pull
-
-            elif [ $REMOTE = $BASE ]; then
+                
+                elif [ $REMOTE = $BASE ]; then
                 echo "DFUSER is ahead of the remote repository"
                 git push
             else
                 echo "DFUSER has diverged, what the F did you do?"
             fi
-
+            
             # look for uncommited changes
             if [ -n "$(git status --porcelain)" ]; then
                 echo "DFUSER has uncommited changes"
@@ -74,7 +74,7 @@ function check_for_updates() {
                 #     fi
                 # done
             fi
-
+            
             # look for untracked files
             if [ -n "$(git ls-files --others --exclude-standard)" ]; then
                 echo "DFUSER has untracked files"
@@ -89,4 +89,68 @@ function check_for_updates() {
     fi
 }
 
-check_for_updates
+# check_for_updates
+
+
+# find bash and python scripts in the following directories ($HOME, $HOME/workspace, $HOME/workspace/sergeant, $HOME/workspace/sergeant/scripts)
+
+# Directory search array
+# directories=(
+#     "$HOME"
+#     "$HOME/workspace"
+#     "$HOME/workspace/sergeant"
+#     "$HOME/workspace/sergeant/scripts"
+#     "$HOME/workspace/utils/dotfiles/dfbin"
+# )
+
+# echo "Directories: ${directories[@]}"
+
+# for dir in "${directories[@]}"; do
+#     echo "Directory: $dir"
+#     if [ -d $dir ]; then
+#         # find all bash scripts
+#         for file in $(find $dir -maxdepth 1 -type f -name "*.sh"); do
+#             echo "Bash script: $file"
+#         done
+#         # find all python scripts
+#         for file in $(find $dir -maxdepth 1 -type f -name "*.py"); do
+#             echo "Python script: $file"
+#         done
+#     fi
+# done
+
+# compare the files and contents of the files in ~/.dfuser/scripts/dfbin with ~/.dfbin
+function diff_dfbin() {
+    # check if ~/.dfuser/scripts/dfbin exists
+    if [ -d "$HOME/.dfuser/scripts/dfbin" ]; then
+        # check if ~/.dfbin exists
+        if [ -d "$HOME/.dfbin" ]; then
+            # find all files in ~/.dfuser/scripts/dfbin
+            for file in $(find $HOME/.dfuser/scripts/dfbin -type f); do
+                # check if the file exists in ~/.dfbin
+                if [ -f "$HOME/.dfbin/$(basename $file)" ]; then
+                    # determine which file is newer
+                    if [ $file -nt "$HOME/.dfbin/$(basename $file)" ]; then
+                        echo "File: $file is newer than ~/.dfbin/$(basename $file)"
+                    else
+                        echo "File: $file is older than ~/.dfbin/$(basename $file)"
+                        # copy the ~/.dfbin/$file to ~/.dfuser/scripts/dfbin/$file
+                        echo "Copying $file to ~/.dfbin/$(basename $file)"
+                        cp "$HOME/.dfbin/$(basename $file)" $file
+                    fi
+                    # compare the contents of the files
+                    # diff $file "$HOME/.dfbin/$(basename $file)"
+                else
+                    echo "File: $file does not exist in ~/.dfbin"
+                fi
+            done
+        else
+            echo "Directory: $HOME/.dfbin does not exist"
+        fi
+    else
+        echo "Directory: $HOME/.dfuser/scripts/dfbin does not exist"
+    fi
+}
+
+diff_dfbin
+

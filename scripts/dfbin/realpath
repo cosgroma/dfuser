@@ -3,6 +3,7 @@
 # @author Weston Ruter (@westonruter) http://weston.ruter.net/
 
 import sys
-import os
+from pathlib import Path
+
 for path in sys.argv[1:]:
-    print os.path.realpath(path)
+    print(Path(path).absolute())
