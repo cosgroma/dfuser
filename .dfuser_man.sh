@@ -29,8 +29,10 @@ function get_dfuser_files() {
     files=$(find $DFUSER_SCRIPTS_DIR -maxdepth 1 -name "*.sh" | sort | uniq)
     for f in $files; do
         fn=$(basename $f)
-        dfuser_files[$fn]=$f
-
+        # if dfuser_files does not contain the key, add it
+        if [[ ! -v dfuser_files[$fn] ]]; then
+            dfuser_files[$fn]=$f
+        fi
         # parse the file to get the environment variables
         # env_vars=$(get_file_env_set $f)
         
@@ -51,7 +53,7 @@ function get_max_str_len() {
             max_len=${#key}
         fi
     done
-    echo $max_len
+    echo -n $max_len
 }
 
 function show_dfuser_files() {
@@ -61,9 +63,12 @@ function show_dfuser_files() {
         if [[ -v dfuser_files_enabled[$key] ]]; then
             enabled_str="|✅|"
         else
-            enabled_str="|  |"
+            enabled_str="|--|"
         fi
-        printf "%${max_len}s ➡️ %s %s\n" $key $enabled_str ${dfuser_files[$key]}
+        file_path=$(echo -n ${dfuser_files[$key]})
+        # remove DFUSER_DIR from the file path
+        file_path=$(echo -n ${file_path#$DFUSER_DIR})
+        printf "%${max_len}s %s➡️  %s\n" $key $enabled_str $file_path
     done
 }
 
