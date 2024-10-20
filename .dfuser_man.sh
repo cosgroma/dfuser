@@ -435,12 +435,9 @@ function check_for_updates() {
             REMOTE=$(git rev-parse @{u})
             BASE=$(git merge-base HEAD @{u})
             
-            # echo "Local: $LOCAL"
-            # echo "Remote: $REMOTE"
-            # echo "Base: $BASE"
             if [ $LOCAL = $REMOTE ]; then
                 echo "DFUSER is up-to-date"
-                elif [ $LOCAL = $BASE ]; then
+            elif [ $LOCAL = $BASE ]; then
                 echo "DFUSER needs to be updated"
                 if has_uncommited_changes; then
                     echo "DFUSER has uncommited changes"
@@ -449,7 +446,7 @@ function check_for_updates() {
                 
                 git pull
                 
-                elif [ $REMOTE = $BASE ]; then
+            elif [ $REMOTE = $BASE ]; then
                 echo "DFUSER is ahead of the remote repository"
                 git push
             else
