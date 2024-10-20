@@ -1,0 +1,107 @@
+#!/bin/bash
+
+debug=true
+dry_run=false
+
+# Define the function to create directories and files from the tree output.
+function create_dirs_from_tree {
+    local tree_output=$1
+    local base_path=$2
+
+    # Split the tree output by newlines.
+    
+    local lines=$(echo "$tree_output" | tr '\r' '\n')
+
+    # if debug print lines
+    if $debug; then
+        echo "$lines"
+    fi
+
+    # Iterate over each line and create the corresponding directories and files.
+    while read -r line; do
+        # Determine the level of the current line.
+        level=$(echo "$line" | sed -E "s/^(\\|\\s)+\\|--\\s.*/\\1/g" | wc -c)
+
+        # if debug print level
+        if $debug; then
+            echo "level: $level"
+        fi
+
+        if (( level == 0 )); then
+            continue
+        fi
+
+
+        # Extract the directory or file name from the line.
+        name=$(echo "$line" | sed -E "s/^(\\|\\s)+\\|--\\s(.*)/\\2/g")
+
+        # if debug print name
+        if $debug; then
+            echo "name: $name"
+        fi
+        # Determine the path of the directory or file.
+        path="$base_path/$name"
+
+        # Create the directory or file if it doesn't already exist.
+        if [[ ! -e "$path" ]]; then
+            if [[ "$name" == *"."* ]]; then
+                # This is a file
+                # Extract the extension
+                extension="${name##*.}"
+                # template=$(cat "$base_path/template.$extension")
+                template=""
+                # create content by applying template
+                template=$(echo "$template" | sed -E "s/\\{\\{name\\}\\}/$name/g")
+                # echo "Creating file $path"
+                if ! $dry_run; then
+                    echo "$template" > "$path"
+                else
+                    echo "echo \"$template\" > \"$path\""
+                fi
+                # if debug print path
+                if $debug; then
+                    echo "Creating file $path"
+                fi
+            else
+                # if debug print path
+                if $debug; then
+                    echo "Creating directory $path"
+                fi
+                if ! $dry_run; then
+                    # This is a directory.
+                    mkdir -p "$path"
+                else
+                    echo "mkdir -p $path"
+                fi
+            fi
+        fi
+    done <<< "$lines"
+}
+
+# Read the tree output from the command line argument, make sure file exists
+if [[ ! -f $1 ]]; then
+    echo "File $1 does not exist"
+    exit 1
+fi
+# read the contents of the file into tree_output
+tree_output="$(cat $1)"
+
+# Get the output directory from the command line argument.
+output_dir=$2
+
+# Get debug option from the command line option passed with -d
+while getopts ":d" opt; do
+    case $opt in
+        d)
+            debug=true
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            ;;
+    esac
+done
+
+# echo $tree_output
+
+# Generate the directories and files.
+create_dirs_from_tree "$tree_output" "$output_dir"

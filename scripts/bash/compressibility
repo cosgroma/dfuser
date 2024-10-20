@@ -1,0 +1,41 @@
+#!/bin/python
+
+# By Gary Bernhardt.
+# Dotfiles at: https://github.com/garybernhardt/dotfiles
+
+import sys
+import zlib
+
+import bz2
+from typing import Any, Union
+from bz2 import BZ2File
+# from collections.abc
+
+
+def main():
+    data = file_data()
+    size = len(data)
+    gzip_size = len(zlib.compress(data))
+    print(f"{size} -> gzip size {gzip_size} ({percent(gzip_size, size)}%)")
+    bz2_size = len(bz2.compress(data))
+    print(f"{size} -> bz2 size {bz2_size} ({percent(bz2_size, size)}%)")
+
+
+def file_data() -> Union[bytes, Any]:
+    files = map(open, sys.argv[1:])
+    if not files:
+        files = [sys.stdin]
+    # return as readbuffer
+    tmpstr = ''.join(f.read() for f in files)
+    tmpbytes = bytes(tmpstr, 'utf-8')
+    return tmpbytes
+    
+
+
+def percent(part, whole):
+    return int(100.0 * part / whole)
+
+
+if __name__ == '__main__':
+    main()
+
