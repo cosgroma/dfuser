@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "../workspace/utils/dotfiles"
+		},
+		{
+			"path": "../wksp/projects/python-file-manager"
 		}
 	]
 }

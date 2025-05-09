@@ -9,6 +9,13 @@
 DFBIN_DIR=$HOME/.dfbin
 DFUSER_DIR=$HOME/.dfuser
 DFUSER_SCRIPTS_DIR=$HOME/.dfuser/scripts
+DFUSER_TEMPLATE_DIR=$HOME/.dfuser/templates
+
+# Test if the dfuser template directory exists
+if ! [[ -d $DFUSER_TEMPLATE_DIR ]]; then
+    echo "Creating the dfuser template directory"
+    mkdir $DFUSER_TEMPLATE_DIR
+fi
 
 # Test if the dfuser directory exists
 if ! [[ -d $DFUSER_DIR ]]; then

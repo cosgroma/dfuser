@@ -35,6 +35,30 @@ COMMON_COMMAND_IGNORE_LIST = ['ls', 'cd', 'pwd', 'echo', 'clear', 'exit', 'histo
 
 
 class HistoryManager:
+    """
+    A class to manage the history of commands executed in a shell environment.
+    
+    Methods
+    -------
+    
+    __init__():
+        Initializes the HistoryManager instance and reads the database.
+    setup_logging():
+        Sets up logging for the history manager.
+    read_database():
+        Reads the database from a file. If the file does not exist, it creates a new one.
+    write_database():
+        Writes the current state of the database to a file.
+    get_command_from_line(line):
+        Extracts the command from a given line of history.
+    process_line(line):
+        Processes a single line of history, updating the database accordingly.
+    add_command_to_database(command: str):
+        Adds a new command to the database if it does not already exist.
+    process_history_file(history_file):
+        Processes a history file, updating the database with the commands found.
+    """
+    
     def __init__(self):
         self.database = self.read_database()
         
@@ -51,7 +75,7 @@ class HistoryManager:
         database = {}
         database_file = os.path.expanduser(DATABASE_FILENAME)
         database_p = Path(database_file)
-        print(f'Reading database file: {database_file}')
+        logging.debug(f'Reading database file: {database_file}')
         # check if database file exists
         if database_p.exists():
             with Path.open(database_p, 'r') as f:
