@@ -5,6 +5,7 @@
 apikeys/**
 
 *.sh
+!bin/*.sh
 !scripts/*.sh
 !scripts/bash/*.sh
 

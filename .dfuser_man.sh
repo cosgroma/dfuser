@@ -435,6 +435,8 @@ function has_uncommited_changes() {
 function check_for_updates() {
     # Check for DFUSER_GIT_REPO
     if [ -d $DFUSER_GIT_REPO ]; then
+        # push the current directory onto the stack
+        pushd . > /dev/null
         # Check for updates
         {
             cd $DFUSER_GIT_REPO
@@ -494,6 +496,8 @@ function check_for_updates() {
             fi
             
         }
+        # pop the directory from the stack
+        popd > /dev/null
     else
         echo "DFUSER is not installed"
     fi
