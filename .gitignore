@@ -32,3 +32,5 @@ apikeys/**
 
 sysadmin/docs/secrets.md
 secrets.md
+**.log
+
