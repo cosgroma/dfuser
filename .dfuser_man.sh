@@ -10,6 +10,7 @@ DFBIN_DIR=$HOME/.dfbin
 DFUSER_DIR=$HOME/.dfuser
 DFUSER_SCRIPTS_DIR=$HOME/.dfuser/scripts
 DFUSER_TEMPLATE_DIR=$HOME/.dfuser/templates
+PATH=$PATH:$DFUSER_DIR/bin
 
 # Test if the dfuser template directory exists
 if ! [[ -d $DFUSER_TEMPLATE_DIR ]]; then
@@ -498,4 +499,4 @@ function check_for_updates() {
     fi
 }
 
-# check_for_updates
+check_for_updates

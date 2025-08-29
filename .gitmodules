@@ -1,3 +1,6 @@
 [submodule "docker-stacks"]
 	path = docker-stacks
 	url = https://github.northgrum.com/cosgrma/docker-stacks.git
+[submodule "assets/plantuml-stdlib"]
+	path = assets/plantuml-stdlib
+	url = https://github.com/plantuml/plantuml-stdlib.git
