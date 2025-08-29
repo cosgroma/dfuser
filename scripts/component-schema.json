@@ -1,0 +1,131 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Component",
+  "type": "object",
+  "properties": {
+    "BasicInformation": {
+      "type": "object",
+      "properties": {
+        "Name": { "type": "string", "minLength": 1 },
+        "shortname": { "type": "string", "minLength": 1 },
+        "Description": { "type": "string", "minLength": 1 },
+        "DescriptionLong": { "type": "string", "minLength": 1 },
+        "VersionReleased": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+        "VersionNext": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+        "Owner": { "type": "string", "minLength": 1 },
+        "git_url": { "type": "string", "format": "uri" },
+        "git_server_type": { "type": "string", "enum": ["github", "gitlab", "bitbucket"] }
+      },
+      "required": ["Name", "Description", "Owner", "git_url", "git_server_type"]
+    },
+    "DevelopmentInformation": {
+      "type": "object",
+      "properties": {
+        "ComponentLead": { "type": "string", "minLength": 1 },
+        "AlgorithmComplexity": { "type": "string", "enum": ["low", "medium", "high"] },
+        "ComplexityRationale": { "type": "string", "minLength": 1 },
+        "DesignPath": { "type": "string", "minLength": 1 }
+      },
+      "required": ["ComponentLead", "AlgorithmComplexity", "ComplexityRationale", "DesignPath"]
+    },
+    "DesignAttributes": {
+      "type": "object",
+      "properties": {
+        "Modules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Name": { "type": "string", "minLength": 1 },
+              "Description": { "type": "string", "minLength": 1 },
+              "Responsibilities": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Name": { "type": "string", "minLength": 1 },
+                    "Description": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["Name", "Description"]
+                }
+              },
+              "Versions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Name": { "type": "string", "minLength": 1 },
+                    "id": { "type": "string", "minLength": 1 },
+                    "Description": { "type": "string", "minLength": 1 },
+                    "githash": { "type": "string", "minLength": 1 },
+                    "status": { "type": "string", "enum": ["active", "deprecated", "archived"] }
+                  },
+                  "required": ["Name", "id", "Description", "githash", "status"]
+                }
+              }
+            },
+            "required": ["Name", "Description", "Responsibilities", "Versions"]
+          }
+        },
+        "Interfaces": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Name": { "type": "string", "minLength": 1 },
+              "Description": { "type": "string", "minLength": 1 },
+              "type": { "type": "string", "enum": ["internal", "external"] }
+            },
+            "required": ["Name", "Description", "type"]
+          }
+        },
+        "Data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Name": { "type": "string", "minLength": 1 },
+              "Description": { "type": "string", "minLength": 1 },
+              "type": { "type": "string", "minLength": 1 },
+              "shared_memory": { "type": "string", "enum": ["yes", "no"] }
+            },
+            "required": ["Name", "Description", "type", "shared_memory"]
+          }
+        }
+      },
+      "required": ["Modules", "Interfaces", "Data"]
+    },
+    "FeatureAttributes": {
+      "type": "object",
+      "properties": {
+        "Features": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Name": { "type": "string", "minLength": 1 },
+              "Description": { "type": "string", "minLength": 1 },
+              "type": { "type": "string", "enum": ["core", "optional", "advanced"] },
+              "group": { "type": "string", "minLength": 1 },
+              "constraints": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "Name": { "type": "string", "minLength": 1 },
+                    "Description": { "type": "string", "minLength": 1 },
+                    "type": { "type": "string", "minLength": 1 }
+                  },
+                  "required": ["Name", "Description", "type"]
+                }
+              }
+            },
+            "required": ["Name", "Description", "type", "group", "constraints"]
+          }
+        }
+      },
+      "required": ["Features"]
+    },
+  },
+  "required": ["BasicInformation", "DevelopmentInformation", "DesignAttributes", "FeatureAttributes"]
+}

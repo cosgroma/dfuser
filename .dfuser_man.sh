@@ -498,4 +498,4 @@ function check_for_updates() {
     fi
 }
 
-check_for_updates
+# check_for_updates

@@ -187,18 +187,3 @@ function is_docker() {
 PS1_DOCKER="\[\e[38;5;150m\]\$(is_docker)\[\e[0m\]"
 
 export PROMPT_COMMAND="${PROMPT_COMMAND:+$PROMPT_COMMAND$'\n'}prompt_command"
-# export PS1="$USR_PROMPT"
-
-# case $(uname) in
-#   Linux)
-#     USR_PROMPT="$PS1_USER_HOST$PS1_WORK_DIR$PS1_GIT_STAT$PS1_XILINX$PS1_GITF$PS1_WENV$PS1_END"
-#     export PLATFORM=linux
-#     ;;
-#   *)
-#     USR_PROMPT="$PS1_USER_HOST$PS1_WORK_DIR$PS1_GITF$PS1_END"
-#     ;;
-# esac
-
-# export PS1="$USR_PROMPT"
-# export PS2='> '
-# export PS4='+ '
